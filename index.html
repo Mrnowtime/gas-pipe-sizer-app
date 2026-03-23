@@ -1109,19 +1109,19 @@ function renderTakeoff() {
     }
 
     html += `
-      <tr ${rowClass}>
+      <tr id="s${s.sid}-row" ${rowClass}>
         <td style="color:var(--muted);font-weight:700;">${idx + 1}</td>
         <td><input type="text" id="s${s.sid}-from" value="${s.from}" style="width:44px" oninput="onToffInput()"></td>
         <td><input type="text" id="s${s.sid}-to"   value="${s.to}"   style="width:44px" oninput="onToffInput()"></td>
         <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-dem" value="${s.dem||''}" placeholder="MJ/h" oninput="onToffInput()"></td>
         <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-len" value="${s.len||''}" placeholder="m"    oninput="onToffInput()"></td>
         <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-add" value="${s.add}"  oninput="onToffInput()"></td>
-        <td style="font-weight:700;color:var(--blue);">${totalMJH > 0 ? totalMJH.toFixed(1) : '—'}</td>
-        <td style="font-weight:700;">${pipe}</td>
-        <td>${cap}</td>
-        <td style="font-size:.72rem;color:var(--muted);">${actualRate}</td>
-        <td style="font-weight:700;">${actualDp}</td>
-        <td>${statusHtml}</td>
+        <td id="s${s.sid}-total" style="font-weight:700;color:var(--blue);">${totalMJH > 0 ? totalMJH.toFixed(1) : '—'}</td>
+        <td id="s${s.sid}-pipe" style="font-weight:700;">${pipe}</td>
+        <td id="s${s.sid}-cap">${cap}</td>
+        <td id="s${s.sid}-rate" style="font-size:.72rem;color:var(--muted);">${actualRate}</td>
+        <td id="s${s.sid}-dp" style="font-weight:700;">${actualDp}</td>
+        <td id="s${s.sid}-status">${statusHtml}</td>
         <td><button class="btn btn-danger" onclick="removeSection(${s.sid})">✕</button></td>
       </tr>`;
   });
@@ -1152,10 +1152,71 @@ function renderTakeoff() {
   }
 }
 
-let toffTimer = null;
+// Update only the computed result cells — never rebuilds input elements,
+// so the focused input keeps focus and the mobile keyboard stays open.
+function updateTakeoffResults() {
+  if (!tablesReady) return;
+  readSectionInputs();
+
+  const kpaM = currentKpaM();
+  let allPass = true, totalDpSum = 0, hasResults = false;
+
+  sections.forEach(s => {
+    const totalMJH = s.dem > 0 ? s.dem * (1 + s.add / 100) : 0;
+    let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', bgColor = '';
+
+    if (s.dem > 0 && s.len > 0 && kpaM > 0) {
+      const r = selectPipe(kpaM, totalMJH);
+      if (r) {
+        hasResults = true;
+        pipe       = r.pipe;
+        cap        = r.cap !== null ? r.cap.toFixed(1) : '—';
+        actualRate = r.actualRate !== null ? r.actualRate.toFixed(6) : '—';
+        const dp   = r.actualRate !== null ? r.actualRate * s.len : null;
+        actualDp   = dp !== null ? dp.toFixed(4) : '—';
+        if (dp !== null) totalDpSum += dp;
+        if (r.pass) {
+          const pct = r.actualRate !== null ? r.actualRate / kpaM : 0;
+          statusHtml = pct > 0.85 ? '<span class="badge warn">⚠ PASS</span>' : '<span class="badge pass">✓</span>';
+          if (pct > 0.85) bgColor = '#fffbeb';
+        } else {
+          statusHtml = '<span class="badge fail">✗ FAIL</span>';
+          allPass    = false;
+          bgColor    = '#fff5f5';
+        }
+      }
+    }
+
+    const row = document.getElementById(`s${s.sid}-row`);
+    if (row) row.style.background = bgColor;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+    set(`s${s.sid}-total`, totalMJH > 0 ? totalMJH.toFixed(1) : '—');
+    set(`s${s.sid}-pipe`,  pipe);
+    set(`s${s.sid}-cap`,   cap);
+    set(`s${s.sid}-rate`,  actualRate);
+    set(`s${s.sid}-dp`,    actualDp);
+    set(`s${s.sid}-status`, statusHtml);
+  });
+
+  const sumDiv   = document.getElementById('toff-summary');
+  const sumBadge = document.getElementById('toff-summary-badge');
+  if (hasResults) {
+    const badge = allPass
+      ? '<span class="badge pass">✓ All sections PASS</span>'
+      : '<span class="badge fail">✗ One or more sections FAIL</span>';
+    sumDiv.innerHTML = `${badge} &nbsp;·&nbsp; <strong>Cumulative ΔP (series): ${totalDpSum.toFixed(4)} kPa</strong>
+      &nbsp;·&nbsp; Allowable ΔP: ${currentDp().toFixed(4)} kPa
+      ${totalDpSum > currentDp() ? '<span style="color:var(--red);font-weight:700;"> — exceeds budget!</span>' : ''}`;
+    sumDiv.style.display = '';
+    sumBadge.innerHTML = allPass ? '<span class="badge pass">✓ PASS</span>' : '<span class="badge fail">✗ FAIL</span>';
+  } else {
+    sumDiv.style.display = 'none';
+    sumBadge.innerHTML   = '';
+  }
+}
+
 function onToffInput() {
-  clearTimeout(toffTimer);
-  toffTimer = setTimeout(renderTakeoff, 250);
+  updateTakeoffResults();
 }
 
 // ═══════════════════════════════════════════════════════════════════

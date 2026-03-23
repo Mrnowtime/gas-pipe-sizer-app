@@ -379,9 +379,13 @@
       <div class="card-hd"><h2>Quick Size</h2><span id="qs-badge"></span></div>
       <div class="card-body">
         <div class="fgrid">
-          <div class="fg" style="grid-column: span 2;">
+          <div class="fg">
             <label for="qs-dem">Total Demand (MJ/h)</label>
             <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
+          </div>
+          <div class="fg">
+            <label for="qs-add">Add %</label>
+            <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-add" value="20" oninput="runQuick()">
           </div>
         </div>
 
@@ -967,6 +971,8 @@ function runQuick() {
   const kpaM      = currentKpaM();
   const len       = currentLen();
   const demand    = parseFloat(val('qs-dem'));
+  const addPct    = parseFloat(val('qs-add')) || 0;
+  const totalMJH  = demand > 0 ? demand * (1 + addPct / 100) : demand;
 
   if (!tablesReady) {
     qsResult.style.display = 'none';
@@ -980,7 +986,7 @@ function runQuick() {
     return;
   }
 
-  const r = selectPipe(kpaM, demand);
+  const r = selectPipe(kpaM, totalMJH);
   if (!r) { qsResult.style.display = 'none'; return; }
 
   qsResult.style.display = '';
@@ -1019,7 +1025,7 @@ function runQuick() {
   // Warn box
   const warnEl = document.getElementById('qs-warn');
   if (!r.pass) {
-    warnEl.textContent = `No ${val('g-mat')} pipe size can carry ${demand} MJ/h at the allowable ${kpaM.toFixed(6)} kPa/m rate. Consider a larger allowable ΔP, shorter run, or a different pipe material.`;
+    warnEl.textContent = `No ${val('g-mat')} pipe size can carry ${totalMJH.toFixed(1)} MJ/h at the allowable ${kpaM.toFixed(6)} kPa/m rate. Consider a larger allowable ΔP, shorter run, or a different pipe material.`;
     warnEl.style.display = '';
   } else {
     warnEl.style.display = 'none';

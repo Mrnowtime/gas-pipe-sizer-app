@@ -301,7 +301,7 @@
     <h1>⚙ Gas Pipe Sizer</h1>
     <p>NZ/AS 5601 · Natural Gas &amp; LPG</p>
   </div>
-  <div class="hdr-right">
+  <div class="hdr-right" style="display:none;">
     <button class="btn btn-purple" onclick="triggerFileInput()">📂 Override Tables</button>
     <input type="file" id="csv-input" multiple accept=".csv" style="display:none" onchange="handleFiles(this.files)">
   </div>
@@ -310,8 +310,8 @@
 <!-- ════════════════════════════ MAIN -->
 <div class="wrap">
 
-  <!-- Load-tables banner -->
-  <div class="load-banner" id="load-banner">
+  <!-- Load-tables banner (hidden — tables are always built-in) -->
+  <div class="load-banner" id="load-banner" style="display:none;">
     <div>
       <p id="load-msg"><strong>No tables loaded.</strong> Click "Load CSV Tables" and select all your CSV files (NZ Copper, Aus Copper, Stainless Steel, Polyethylene for both NG and LPG).</p>
       <div class="load-status" id="load-status"></div>

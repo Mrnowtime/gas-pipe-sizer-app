@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NZ/AS 5601 Gas Pipe Sizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #1e40af;
+      --blue-lt: #2563eb;
+      --green:   #065f46;
+      --green-lt:#d1fae5;
+      --red:     #991b1b;
+      --red-lt:  #fee2e2;
+      --amber:   #92400e;
+      --amber-lt:#fef3c7;
+      --border:  #e2e8f0;
+      --bg:      #f0f4f8;
+      --card:    #ffffff;
+      --text:    #1a202c;
+      --muted:   #64748b;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    .hdr {
+      background: linear-gradient(135deg, #1e3a5f, #2563eb);
+      color: #fff;
+      padding: .75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .hdr h1 { font-size: 1.05rem; font-weight: 700; }
+    .hdr p  { font-size: .65rem; opacity: .75; margin-top: .1rem; }
+    .hdr-right { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+
+    /* ── Container ───────────────────────────── */
+    .wrap { max-width: 960px; margin: 0 auto; padding: .75rem; }
+
+    /* ── Cards ───────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: .6rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      margin-bottom: .75rem;
+      overflow: hidden;
+    }
+    .card-hd {
+      padding: .5rem .875rem;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+    }
+    .card-hd h2 { font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .card-body  { padding: .875rem; }
+
+    /* ── Buttons ─────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .45rem .875rem;
+      border: none;
+      border-radius: .35rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+      white-space: nowrap;
+    }
+    .btn:active  { opacity: .75; }
+    .btn-primary { background: var(--blue-lt); color: #fff; }
+    .btn-green   { background: #059669; color: #fff; }
+    .btn-purple  { background: #7c3aed; color: #fff; }
+    .btn-ghost   { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-danger  { background: transparent; color: var(--red); border: 1.5px solid #fca5a5; font-size: .72rem; padding: .3rem .6rem; }
+    .btn-sm      { padding: .3rem .7rem; font-size: .75rem; }
+
+    /* ── Load-tables banner ──────────────────── */
+    .load-banner {
+      background: #eff6ff;
+      border: 1.5px dashed #93c5fd;
+      border-radius: .5rem;
+      padding: .75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: .75rem;
+    }
+    .load-banner.loaded { background: #f0fdf4; border-color: #86efac; }
+    .load-banner p { font-size: .8rem; color: var(--blue); flex: 1; min-width: 180px; }
+    .load-banner.loaded p { color: var(--green); }
+    .load-status { font-size: .7rem; color: var(--muted); margin-top: .15rem; }
+
+    /* ── Drag-drop zone ──────────────────────── */
+    .drop-zone {
+      border: 2px dashed #a78bfa;
+      border-radius: .5rem;
+      padding: 1.25rem;
+      text-align: center;
+      background: #faf5ff;
+      transition: background .15s;
+      cursor: pointer;
+      margin-bottom: .75rem;
+    }
+    .drop-zone.drag-over { background: #ede9fe; border-color: #7c3aed; }
+    .drop-zone p  { font-size: .8rem; color: #6d28d9; margin-top: .35rem; }
+    .drop-zone input[type="file"] { display: none; }
+
+    /* ── Form grid ───────────────────────────── */
+    .fgrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: .625rem;
+    }
+    .fg { display: flex; flex-direction: column; gap: .2rem; }
+    label { font-size: .72rem; font-weight: 600; color: var(--muted); }
+    select, input[type="number"], input[type="text"] {
+      border: 1.5px solid var(--border);
+      border-radius: .35rem;
+      padding: .45rem .6rem;
+      font-size: .875rem;
+      color: var(--text);
+      width: 100%;
+      background: #fff;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--blue-lt);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+    .computed {
+      border-color: #a5b4fc;
+      background: #eef2ff;
+      color: var(--blue);
+      font-weight: 700;
+    }
+    .hint { font-size: .65rem; color: #a0aec0; }
+
+    /* ── Tabs ────────────────────────────────── */
+    .tabs { display: flex; gap: .35rem; margin-bottom: .75rem; }
+    .tab {
+      padding: .5rem 1rem;
+      border-radius: .4rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      transition: all .15s;
+    }
+    .tab.active { background: var(--blue-lt); color: #fff; border-color: var(--blue-lt); }
+
+    /* ── Result tiles ────────────────────────── */
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: .5rem;
+      margin-top: .625rem;
+    }
+    .tile {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      padding: .5rem .625rem;
+    }
+    .tile-label { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .tile-value { font-size: 1rem; font-weight: 800; color: var(--text); margin-top: .1rem; }
+    .tile-unit  { font-size: .65rem; color: var(--muted); }
+    .tile.pass  { background: var(--green-lt); border-color: #6ee7b7; }
+    .tile.warn  { background: var(--amber-lt); border-color: #fde68a; }
+    .tile.fail  { background: var(--red-lt);   border-color: #fca5a5; }
+
+    /* ── Badge ───────────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .2rem;
+      padding: .2rem .55rem;
+      border-radius: 9999px;
+      font-size: .72rem;
+      font-weight: 700;
+    }
+    .badge.pass { background: var(--green-lt); color: var(--green); }
+    .badge.warn { background: var(--amber-lt); color: var(--amber); }
+    .badge.fail { background: var(--red-lt);   color: var(--red); }
+
+    /* ── Divider ─────────────────────────────── */
+    .divider { height: 1px; background: var(--border); margin: .75rem 0; }
+
+    /* ── Takeoff table ───────────────────────── */
+    .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    thead th {
+      background: #f1f5f9;
+      padding: .4rem .625rem;
+      text-align: left;
+      font-size: .67rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: .35rem .5rem;
+      border-bottom: 1px solid #f0f4f8;
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f8fafc; }
+    .total-row td {
+      font-weight: 800;
+      background: #f1f5f9 !important;
+      border-top: 2px solid var(--border);
+      border-bottom: none;
+    }
+    td input[type="number"], td input[type="text"] {
+      width: 100%;
+      min-width: 52px;
+      padding: .3rem .4rem;
+      font-size: .78rem;
+    }
+
+    /* ── Warn box ────────────────────────────── */
+    .warn-box {
+      background: var(--amber-lt);
+      border: 1px solid #fde68a;
+      border-radius: .4rem;
+      padding: .5rem .75rem;
+      font-size: .75rem;
+      color: var(--amber);
+      margin-top: .5rem;
+    }
+
+    /* ── Empty state ─────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+    }
+    .empty .icon { font-size: 2rem; margin-bottom: .35rem; }
+    .empty p { font-size: .8rem; }
+
+    /* ── Tables-loaded chip list ─────────────── */
+    .chip-list { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+    .chip {
+      font-size: .65rem;
+      padding: .15rem .45rem;
+      border-radius: 9999px;
+      background: #dbeafe;
+      color: var(--blue);
+      font-weight: 600;
+    }
+    .chip.ok { background: #d1fae5; color: var(--green); }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 480px) {
+      .fgrid { grid-template-columns: 1fr 1fr; }
+      .result-grid { grid-template-columns: 1fr 1fr; }
+      .hdr h1 { font-size: .95rem; }
+      table { font-size: .72rem; }
+      thead th, tbody td { padding: .3rem .4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════ HEADER -->
+<div class="hdr">
+  <div>
+    <h1>⚙ Gas Pipe Sizer</h1>
+    <p>NZ/AS 5601 · Natural Gas &amp; LPG</p>
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-purple" onclick="triggerFileInput()">📂 Override Tables</button>
+    <input type="file" id="csv-input" multiple accept=".csv" style="display:none" onchange="handleFiles(this.files)">
+  </div>
+</div>
+
+<!-- ════════════════════════════ MAIN -->
+<div class="wrap">
+
+  <!-- Load-tables banner -->
+  <div class="load-banner" id="load-banner">
+    <div>
+      <p id="load-msg"><strong>No tables loaded.</strong> Click "Load CSV Tables" and select all your CSV files (NZ Copper, Aus Copper, Stainless Steel, Polyethylene for both NG and LPG).</p>
+      <div class="load-status" id="load-status"></div>
+      <div class="chip-list" id="chip-list"></div>
+    </div>
+  </div>
+
+  <!-- Drop zone (hidden when tables loaded) -->
+  <div class="drop-zone" id="drop-zone" onclick="triggerFileInput()"
+       ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+    <div style="font-size:1.75rem;">📁</div>
+    <p>Drag &amp; drop CSV files here, or click to browse<br>
+    <em style="font-size:.7rem;color:#a78bfa;">Select all CSV files at once — the app auto-detects which is which</em></p>
+  </div>
+
+  <!-- Global settings -->
+  <div class="card">
+    <div class="card-hd"><h2>Global Settings</h2></div>
+    <div class="card-body">
+      <div class="fgrid">
+        <div class="fg">
+          <label for="g-gas">Gas Type</label>
+          <select id="g-gas" onchange="onGasChange()">
+            <option value="NG">Natural Gas</option>
+            <option value="LPG">LPG</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="g-mat">Pipe Material</label>
+          <select id="g-mat" onchange="onMatChange()">
+            <option value="NZ Copper">NZ Copper</option>
+            <option value="Aus Copper">Aus Copper</option>
+            <option value="Stainless Steel">Steel</option>
+            <option value="Polyethylene">Polyethylene (PE)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="g-dp">Allowable ΔP (kPa)</label>
+          <input type="text" inputmode="decimal" id="g-dp" value="0.75" oninput="filterDecimal(this);recalcRate()">
+          <span class="hint">Total pressure budget</span>
+        </div>
+        <div class="fg">
+          <label for="g-len">Longest Run (m)</label>
+          <input type="text" inputmode="decimal" id="g-len" value="20" oninput="filterDecimal(this);recalcRate()">
+          <span class="hint">For Quick Size mode</span>
+        </div>
+        <div class="fg">
+          <label for="g-rate">Allowable kPa/m</label>
+          <input type="text" inputmode="decimal" id="g-rate" value="0.0375" class="computed" oninput="filterDecimal(this);onRateOverride()">
+          <span class="hint">= ΔP ÷ Longest Run</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-quick" onclick="switchTab('quick')">🔍 Quick Size</button>
+    <button class="tab"        id="tab-toff"  onclick="switchTab('takeoff')">📋 Pipe Takeoff</button>
+  </div>
+
+  <!-- QUICK SIZE -->
+  <div id="pane-quick">
+    <div class="card">
+      <div class="card-hd"><h2>Quick Size</h2><span id="qs-badge"></span></div>
+      <div class="card-body">
+        <div class="fgrid">
+          <div class="fg" style="grid-column: span 2;">
+            <label for="qs-dem">Total Demand (MJ/h)</label>
+            <input type="text" inputmode="decimal" id="qs-dem" placeholder="e.g. 450" oninput="filterDecimal(this);runQuick()">
+          </div>
+        </div>
+
+        <div id="qs-result" style="display:none;">
+          <div class="divider"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+            <strong style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Result</strong>
+            <span id="qs-status"></span>
+          </div>
+          <div class="result-grid">
+            <div class="tile" id="qs-t-size">
+              <div class="tile-label">Pipe Size</div>
+              <div class="tile-value" id="qs-v-size">—</div>
+            </div>
+            <div class="tile" id="qs-t-cap">
+              <div class="tile-label">Capacity @ kPa/m</div>
+              <div class="tile-value" id="qs-v-cap">—</div>
+              <div class="tile-unit">MJ/h</div>
+            </div>
+            <div class="tile" id="qs-t-rate">
+              <div class="tile-label">Actual kPa/m</div>
+              <div class="tile-value" id="qs-v-rate">—</div>
+              <div class="tile-unit">for demand</div>
+            </div>
+            <div class="tile" id="qs-t-dp">
+              <div class="tile-label">Actual ΔP</div>
+              <div class="tile-value" id="qs-v-dp">—</div>
+              <div class="tile-unit">kPa (over longest run)</div>
+            </div>
+          </div>
+          <div id="qs-warn" class="warn-box" style="display:none;"></div>
+          <div id="qs-next" style="display:none;margin-top:.625rem;">
+            <div class="divider"></div>
+            <div style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.35rem;">NEXT PIPE SIZE UP</div>
+            <div class="result-grid">
+              <div class="tile">
+                <div class="tile-label">Size</div>
+                <div class="tile-value" id="qs-nv-size">—</div>
+              </div>
+              <div class="tile">
+                <div class="tile-label">Capacity @ kPa/m</div>
+                <div class="tile-value" id="qs-nv-cap">—</div>
+                <div class="tile-unit">MJ/h</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="qs-no-tables" class="empty">
+          <div class="icon">📂</div>
+          <p>Load your CSV sizing tables to enable calculations.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPE TAKEOFF -->
+  <div id="pane-toff" style="display:none;">
+    <div class="card">
+      <div class="card-hd">
+        <h2>Pipe Takeoff</h2>
+        <div style="display:flex;gap:.35rem;align-items:center;">
+          <span id="toff-summary-badge"></span>
+          <button class="btn btn-green btn-sm" onclick="addSection()">+ Add Row</button>
+        </div>
+      </div>
+
+      <div id="toff-no-tables" class="empty" style="padding:1.5rem;">
+        <div class="icon">📂</div>
+        <p>Load your CSV sizing tables to enable calculations.</p>
+      </div>
+
+      <div id="toff-content" style="display:none;">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Demand<br>(MJ/h)</th>
+                <th>Length<br>(m)</th>
+                <th>Add %</th>
+                <th>Total MJ/h<br>(sized for)</th>
+                <th>Pipe Size</th>
+                <th>Capacity<br>(MJ/h)</th>
+                <th>Actual<br>kPa/m</th>
+                <th>Actual ΔP<br>(kPa)</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="toff-body"></tbody>
+          </table>
+        </div>
+        <div id="toff-summary" style="display:none;padding:.75rem .875rem;border-top:1px solid var(--border);font-size:.78rem;"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// BAKED-IN TABLE DATA  (extracted from NZ/AS 5601 CSV sizing tables)
+// Sampled at 29 strategic kPa/m values (0.0001 – 0.1) per table.
+// Format: { key: { pipes:[names], data:[[kPa/m, p0mjh, p1mjh, ...]] } }
+// ═══════════════════════════════════════════════════════════════════
+const TABLE_DATA = {
+  'NG_NZ Copper':{pipes:['6mm Copper Pipe','8mm Copper Pipe','10mm Copper Pipe','15mm Copper Pipe','20mm Copper Pipe','25mm Copper Pipe','32mm Copper Pipe','40mm Copper Pipe','50mm Copper Pipe','65mm Copper Pipe','80mm Copper Pipe','100mm Copper Pipe'],data:[
+    [0.0002,0,0,0,1,5,17,45,89,200,375,600,1450],
+    [0.0003,0,0,0,1.3,6,20,55,100,239,420,700,1600],
+    [0.0004,0,0,0,1.7,8,27,70,124,275,500,800,1855],
+    [0.0005,0,0,0,2.2,11,34,80,145,300,570,910,2085],
+    [0.0006,0,0,0,2.5,13,40,88,157,345,642,1010,2350],
+    [0.0007,0,0,0,3,16,48,98,177,375,700,1200,2600],
+    [0.0008,0,0,0,3.4,18,54,105,185,400,750,1275,2800],
+    [0.0009,0,0,0,3.8,19,57,111,191,420,800,1385,2905],
+    [0.001,0,0,0,4.1,22,61,121,200,455,845,1450,3050],
+    [0.0015,0,0,0,5.4125,32,74.125,152.875,246.875,553.125,1066.875,1709.375,3690.625],
+    [0.002,0,0,0,8.2,40,89,183,296,671,1280,2000,4565],
+    [0.003,0,0,0,13,50,119,220,380,840,1610,2575,5750],
+    [0.004,0,0,0,17,60,140,260,440,990,1900,2992,6750],
+    [0.005,0,0,0,19,68,162,293,498,1120,2060,3400,7700],
+    [0.007,0,0,0,24,81,188,360,600,1450,2500,4000,0],
+    [0.01,0,0,12,29,100,230,430,742,1750,3100,5000,0],
+    [0.015,0,5.844262,14.5,36.142857,132.857143,282.857143,549.285714,960,2164.285714,3960,6357.142857,0],
+    [0.02,5.3,12,17,43,160,325,640,1120,2500,4500,7250,0],
+    [0.025,6,13.5,18.5,48,171,365,717.5,1260,2755,5100,8175,0],
+    [0.03,6.7,15,20,53,182,405,795,1400,3010,5700,9100,0],
+    [0.035,7.35,16.25,22,57.5,201,447.5,862.5,1550,3305,6200,0,0],
+    [0.04,8,17.5,24,62,220,490,930,1700,3600,6700,0,0],
+    [0.05,8.9,19,27.5,71,248,550,1100,1860,4005,7600,0,0],
+    [0.06,10,22,30,80,275,605,1210,2000,4500,8300,0,0],
+    [0.07,2,23,33,87,295,680,1350,2220,5985,9000,0,0],
+    [0.08,13,26,36,93,325,715,1480,2400,5325,0,0,0],
+    [0.09,14,27,38,100,345,775,1600,2600,5750,0,0,0],
+    [0.1,14.6,28,40,110,370,810,1700,2750,6050,0,0,0],
+  ]},
+  'NG_Aus Copper':{pipes:['15mm Copper Pipe','20mm Copper Pipe','25mm Copper Pipe','32mm Copper Pipe','40mm Copper Pipe','50mm Copper Pipe','65mm Copper Pipe','80mm Copper Pipe','100mm Copper Pipe','125mm Copper Pipe','150mm Copper Pipe'],data:[
+    [0.0004,0,0,18,50,100,235,415,678,1660,2850,4700],
+    [0.0005,0,0,23,62,119,255,470,770,1800,3250,5450],
+    [0.0006,0,0,28,75,135,280,525,850,1925,3700,6050],
+    [0.0007,0,0,33,82,143,298,570,930,2175,3950,6500],
+    [0.0008,0,12,37,87,150,325,615,1025,2350,4325,7090],
+    [0.0009,0,14,42,92,163,350,670,1150,2500,4690,7600],
+    [0.001,0,15,46,96,170,370,700,1220,2690,4800,8050],
+    [0.0015,0,19.666667,60.333333,120.666667,190,441.666667,846.666667,1455,3133.333333,5816.666667,8966.666667],
+    [0.002,0,28,73,140,235,560,1100,1700,3850,7300,0],
+    [0.003,0,43,90,180,290,710,1400,2225,4890,8175,0],
+    [0.004,0,48,107,200,350,825,1700,2700,5750,0,0],
+    [0.005,13,54,120,232,390,950,1850,2900,6590,0,0],
+    [0.007,16,65,148,280,480,1200,2200,3500,0,0,0],
+    [0.01,23,78,180,340,585,1500,2725,4250,0,0,0],
+    [0.015,29.777778,92.666667,212.222222,428.888889,736.666667,1758.333333,3344.444444,5383.333333,0,0,0],
+    [0.02,36,122,368,510,880,2100,3950,6290,0,0,0],
+    [0.025,39.5,136,350.5,577.5,1027.5,2400,4472.5,7145,0,0,0],
+    [0.03,43,150,333,645,1175,2700,4995,8000,0,0,0],
+    [0.035,46.5,165,361.5,707.5,1275,2900,5447.5,8250,0,0,0],
+    [0.04,50,180,390,770,1375,3100,5900,8500,0,0,0],
+    [0.05,56,191,445,880,1600,3550,6500,0,0,0,0],
+    [0.06,60,220,500,980,1750,3950,7400,0,0,0,0],
+  ]},
+  'NG_Stainless Steel':{pipes:['15mm Steel Pipe','22mm Steel Pipe','28mm Steel Pipe','35mm Steel Pipe','42mm Steel Pipe','54mm Steel Pipe','76.1mm Steel Pipe','80mm Steel Pipe','100mm Steel Pipe'],data:[
+    [0.0001,4,0,0,0,0,0,0,0,0],
+    [0.0002,4,12,28,87,140,250,495,750,1700],
+    [0.0003,5,17,42,115,170,305,600,920,1850],
+    [0.0004,6.7,23,56,135,190,360,710,1150,2200],
+    [0.0005,8.3,28,67,150,220,400,800,1300,2500],
+    [0.0006,10,33,76,170,245,445,875,1425,2750],
+    [0.0007,12,38,82,180,260,485,960,1550,2900],
+    [0.0008,14,43,88,190,280,515,1030,1600,3180],
+    [0.0009,16,49,92,197,296,550,1100,1750,3380],
+    [0.001,18,54,100,215,320,585,1200,1850,3700],
+    [0.0015,25.5,65.5,130,257.5,390,715,1500,2275,4387.5],
+    [0.002,33,77,160,300,460,845,1800,2700,5075],
+    [0.003,42,97,180,380,580,1050,2075,3250,6450],
+    [0.004,50,120,215,445,675,1270,2450,3780,7480],
+    [0.005,57,135,240,500,750,1500,2800,4200,8300],
+    [0.007,69,165,285,595,900,1700,3280,5000,0],
+    [0.01,82,190,350,725,1200,2000,4000,6050,0],
+    [0.015,103.5,230,425,907.5,1425,2450,4875,7425,0],
+    [0.02,125,270,500,1090,1650,2900,5750,8800,0],
+    [0.025,142.5,307.5,562.5,1270,1800,3275,6375,0,0],
+    [0.03,160,345,625,1450,1950,3650,7000,0,0],
+    [0.035,170,370,672.5,1537.5,2125,3950,7600,0,0],
+    [0.04,180,395,720,1625,2300,4250,8200,0,0],
+    [0.05,195,440,810,1800,2625,4800,0,0,0],
+    [0.06,220,485,900,1925,2900,5250,0,0,0],
+    [0.07,245,530,990,2100,3100,5700,0,0,0],
+    [0.08,260,570,1100,2240,3400,6100,0,0,0],
+    [0.09,280,605,1200,2400,3650,6580,0,0,0],
+    [0.1,290,640,1250,2600,3850,7000,0,0,0],
+  ]},
+  'NG_Polyethylene':{pipes:['20mm Poly Pipe','40mm Poly Pipe','63mm Poly Pipe','90mm Poly Pipe','110mm Poly Pipe'],data:[
+    [0.0001,8,44,165,550,1090],
+    [0.0002,9.5,59,210,700,1320],
+    [0.0003,11,74,255,850,1550],
+    [0.0004,12.5,89,300,1000,1780],
+    [0.0005,14,100,345,1200,1960],
+    [0.0006,15.5,119,380,1300,2250],
+    [0.0007,17,133,420,1500,2400],
+    [0.0008,18.5,140,450,1610,2610],
+    [0.0009,20,150,480,1710,2800],
+    [0.001,22,170,500,1800,3000],
+    [0.0015,26.5,195,635,2220,3750],
+    [0.002,31,220,770,2640,4500],
+    [0.003,40,275,940,3250,5700],
+    [0.004,57,325,1200,3800,6850],
+    [0.005,52,375,1300,4300,7650],
+    [0.007,63,440,1600,5200,0],
+    [0.01,89,540,1900,6500,0],
+    [0.015,104.5,670,2370,8150,0],
+    [0.02,120,800,2840,9800,0],
+    [0.025,135,900,3170,0,0],
+    [0.03,150,1000,3500,0,0],
+    [0.035,162.5,1125,3800,0,0],
+    [0.04,175,1250,4100,0,0],
+    [0.05,192,1400,4650,0,0],
+    [0.06,210,1600,5110,0,0],
+    [0.07,235,1750,5700,0,0],
+    [0.08,250,1800,6000,0,0],
+    [0.09,270,1900,6500,0,0],
+    [0.1,290,2000,7000,0,0],
+  ]},
+  'LPG_NZ Copper':{pipes:['6mm Copper Pipe','8mm Copper Pipe','10mm Copper Pipe','15mm Copper Pipe','20mm Copper Pipe','25mm Copper Pipe','32mm Copper Pipe','40mm Copper Pipe','50mm Copper Pipe','65mm Copper Pipe','80mm Copper Pipe','100mm Copper Pipe'],data:[
+    [0.0008,0,0,0,13,42.5,95,180,318,700,1400,2100,4900],
+    [0.0009,0,0,0,14,45,100,193,335,750,1485,2250,5150],
+    [0.001,0,0,0,15,48,120,210,355,800,1600,2400,5500],
+    [0.0015,0,0,0,18,59,145,257.5,432.5,1025,1925,3045,6875],
+    [0.002,0,0,0,21,70,170,305,510,1250,2250,3690,8250],
+    [0.003,0,0,0,27,90,200,390,660,1600,2800,4600,0],
+    [0.004,0,0,0,30,105,240,460,780,1850,3250,5400,0],
+    [0.005,0,0,0,35,125,275,505,880,2000,3750,6100,0],
+    [0.007,0,0,0,42,155,325,615,1080,2425,4600,7400,0],
+    [0.01,0,0,21,50,183,400,775,1350,2950,5550,9100,0],
+    [0.015,0,17.875,25.5,63,229,495,962.5,1625,3125,6825,0,0],
+    [0.02,9.5,21,30,76,275,590,1150,1900,3300,8100,0,0],
+    [0.025,11,24,33.5,85,300,660,1312.5,2150,4375,9100,0,0],
+    [0.03,12.5,27,37,94,325,730,1475,2400,5450,0,0,0],
+    [0.035,13.75,28.5,40,107,352.5,790,1612.5,2600,5850,0,0,0],
+    [0.04,15,30,43,120,380,850,1750,2800,6250,0,0,0],
+    [0.05,17,34,49,135,435,975,1890,3150,7150,0,0,0],
+    [0.06,18,38,54,145,480,1150,2045,3600,8000,0,0,0],
+    [0.07,19,42,59,165,525,1220,2290,3910,9000,0,0,0],
+    [0.08,20,45,63,180,580,1325,2500,4100,0,0,0,0],
+    [0.09,22,48,69,98,600,1450,2700,4500,0,0,0,0],
+    [0.1,23,50,71,190,625,1575,2825,4850,0,0,0,0],
+  ]},
+  'LPG_Aus Copper':{pipes:['6mm Copper Pipe','8mm Copper Pipe','10mm Copper Pipe','15mm Copper Pipe','20mm Copper Pipe','25mm Copper Pipe','32mm Copper Pipe','40mm Copper Pipe','50mm Copper Pipe','65mm Copper Pipe','80mm Copper Pipe','100mm Copper Pipe','125mm Copper Pipe'],data:[
+    [0.0008,0,0,0,0,35,75,155,255,600,1200,1850,4200,7710],
+    [0.0009,0,0,0,0,38,80,170,275,645,1300,1975,4500,8300],
+    [0.001,0,0,0,0,39,85,175,290,690,1375,2220,4800,9000],
+    [0.0015,0,0,0,13.71429,47.5,109,217.5,360,867.5,1650,2660,5900,0],
+    [0.002,0,0,0,18,56,133,260,430,1045,1925,3100,7000,0],
+    [0.003,0,0,0,23,70,167,320,550,1345,2500,4000,9000,0],
+    [0.004,0,0,0,26,82,190,380,645,1600,2900,4600,0,0],
+    [0.005,0,0,0,28,93,228,436,715,1800,3350,5300,0,0],
+    [0.007,0,0,0,33,123,270,519,885,2100,3950,6390,0,0],
+    [0.01,0,0,0,40,150,325,629,1100,2600,4800,7800,0,0],
+    [0.015,0,14.33333,19.83333,50,185,402.5,779.5,1400,3200,5900,9371.429,0,0],
+    [0.02,0,16,24,60,220,480,930,1700,3800,7000,0,0,0],
+    [0.025,0,17,26,68,247.5,540,1065,1850,4275,7950,0,0,0],
+    [0.03,0,18,28,76,275,600,1200,2000,4750,8900,0,0,0],
+    [0.035,0,20.25,30.5,83,297.5,650,1325,2200,5175,9587.5,0,0,0],
+    [0.04,0,22.5,33,90,320,700,1450,2400,5600,0,0,0,0],
+    [0.05,12,25,38,108,363,800,1700,2750,6225,0,0,0,0],
+    [0.06,13,27,43,125,400,900,1800,3000,7000,0,0,0,0],
+    [0.07,14,30,48,130,450,1000,1920,3300,7720,0,0,0,0],
+    [0.08,15,32.5,51,147,475,1175,2100,3700,8250,0,0,0,0],
+    [0.09,16,35,55,158,500,1200,2200,3800,8785,0,0,0,0],
+    [0.1,17,37,58.5,165,538,1250,2320,4000,9150,0,0,0,0],
+  ]},
+  'LPG_Stainless Steel':{pipes:['15mm Steel Pipe','22mm Steel Pipe','28mm Steel Pipe','35mm Steel Pipe','42mm Steel Pipe','54mm Steel Pipe','76.1mm Steel Pipe','80mm Steel Pipe','100mm Steel Pipe'],data:[
+    [0.0003,22.5,48,90,190,287,525,1100,1700,3325],
+    [0.0004,26,56,108,230,339,605,1300,1890,3800],
+    [0.0005,28,64,128,260,380,700,1450,2100,4250],
+    [0.0006,32,70,140,275,420,775,1600,2300,4750],
+    [0.0007,34,78,160,300,450,825,1800,2550,5050],
+    [0.0008,37,82,167,330,485,900,1865,2750,5420],
+    [0.0009,39,89,172,350,510,950,1900,2900,5750],
+    [0.001,42,92,181,371,550,1000,2000,3050,6050],
+    [0.0015,51,115.5,215.5,440.5,675,1295,2450,3675,7425],
+    [0.002,60,139,250,510,800,1590,2900,4300,8800],
+    [0.003,73,175,308,655,980,1800,3600,5400,0],
+    [0.004,87,195,360,770,1200,2100,4100,6300,0],
+    [0.005,98,225,415,870,1400,2400,4800,7000,0],
+    [0.007,125,270,490,1050,1650,2820,5700,8500,0],
+    [0.01,152,320,600,1300,1900,3475,6900,0,0],
+    [0.015,178.5,387.5,725,1550,2300,4237.5,8257.143,0,0],
+    [0.02,205,455,850,1800,2700,5000,0,0,0],
+    [0.025,237.5,515,975,2050,3025,5550,0,0,0],
+    [0.03,270,575,1100,2300,3350,6100,0,0,0],
+    [0.035,285,622.5,1200,2500,3625,6600,0,0,0],
+    [0.04,300,670,1300,2700,3900,7100,0,0,0],
+    [0.05,339,750,1500,3000,4425,8000,0,0,0],
+    [0.06,375,810,1600,3250,4950,9000,0,0,0],
+    [0.07,407,900,1720,3575,5300,0,0,0,0],
+    [0.08,439,990,1800,3800,5800,0,0,0,0],
+    [0.09,460,1035,1900,4000,6000,0,0,0,0],
+    [0.1,495,1125,2000,4250,6350,0,0,0,0],
+  ]},
+  'LPG_Polyethylene':{pipes:['20mm Poly Pipe','25mm Poly Pipe','32mm Poly Pipe','40mm Poly Pipe','50mm Poly Pipe','63mm Poly Pipe','75mm Poly Pipe','90mm Poly Pipe','110mm Poly Pipe','160mm Poly Pipe'],data:[
+    [0.0008,18,46,105,192,363,675,1210,1825,3150,8600],
+    [0.0009,20,48,119,208,390,720,1285,1910,3320,9100],
+    [0.001,22.5,50,125,221,411,770,1330,2025,3600,10000],
+    [0.0015,27.5,61.25,152.5,278,510.5,1010,1615,2522.5,4400,0],
+    [0.002,32.5,72.5,180,335,610,1250,1900,3020,5200,0],
+    [0.003,39.5,91,225,420,780,1550,2390,3825,6610,0],
+    [0.004,46,114,270,190,920,1800,2850,4600,7790,0],
+    [0.005,51,130,300,570,1050,1950,3120,5100,8750,0],
+    [0.007,61.5,160,375,675,1320,2300,3800,6125,0,0],
+    [0.01,76,188,452,820,1600,2875,4675,7400,0,0],
+    [0.015,98,231.5,563.5,1060,1942.5,3562.5,5800,9133.333,0,0],
+    [0.02,120,275,675,1300,2285,4250,6925,0,0,0],
+    [0.025,137.5,312.5,757.5,1460,2567.5,4737.5,7662.5,0,0,0],
+    [0.03,155,350,840,1620,2850,5225,8400,0,0,0],
+    [0.035,167.5,379,920,1750,3125,5737.5,9200,0,0,0],
+    [0.04,180,408,1000,1880,3400,6250,10000,0,0,0],
+    [0.05,195,470,1200,2050,3800,7000,0,0,0,0],
+    [0.06,218,520,1300,2300,4200,7800,0,0,0,0],
+    [0.07,230,560,1400,2550,4550,8400,0,0,0,0],
+    [0.08,255,600,1600,2700,4900,9000,0,0,0,0],
+    [0.09,273,670,1700,2850,5250,9800,0,0,0,0],
+    [0.1,290,700,1750,3000,5700,0,0,0,0,0],
+  ]},
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// TABLE STORE
+// Key:  "NG_NZ Copper", "LPG_Aus Copper", etc.
+// Value: { "6mm Copper Pipe": [[kpa_m, mjh], ...] in kpa_m order }
+// ═══════════════════════════════════════════════════════════════════
+const TABLES      = {};   // populated from baked data or CSV files
+const PIPE_ORDER  = {};   // same key → ordered array of pipe names
+let   tablesReady = false;
+let   dataSource  = 'built-in'; // 'built-in' or 'csv'
+
+const ALL_MATERIALS = ['NZ Copper', 'Aus Copper', 'Stainless Steel', 'Polyethylene'];
+const EXPECTED_KEYS = [
+  'NG_NZ Copper','NG_Aus Copper','NG_Stainless Steel','NG_Polyethylene',
+  'LPG_NZ Copper','LPG_Aus Copper','LPG_Stainless Steel','LPG_Polyethylene'
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// BAKED-IN DATA INITIALISATION
+// ═══════════════════════════════════════════════════════════════════
+function initFromBakedData() {
+  for (const [key, entry] of Object.entries(TABLE_DATA)) {
+    const { pipes, data } = entry;
+    PIPE_ORDER[key] = pipes;
+    TABLES[key] = {};
+    pipes.forEach(name => { TABLES[key][name] = []; });
+    data.forEach(row => {
+      const kpaM = row[0];
+      pipes.forEach((name, i) => {
+        const mjh = row[i + 1];
+        if (mjh > 0) TABLES[key][name].push([kpaM, mjh]);
+      });
+    });
+  }
+  tablesReady = true;
+  dataSource = 'built-in';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FILE DETECTION  (from filename)
+// ═══════════════════════════════════════════════════════════════════
+function identifyCSV(filename) {
+  const u = filename.toUpperCase();
+  // Skip helper/calc sheets
+  if (/CALC|INPUT|TAKEOFF|ADDITIONAL/.test(u)) return null;
+
+  const gas = u.includes('LPG') ? 'LPG' : 'NG';
+
+  let mat = null;
+  if      (u.includes('NZ COPPER'))       mat = 'NZ Copper';
+  else if (u.includes('AUS COPPER'))      mat = 'Aus Copper';
+  else if (u.includes('STAINLESS STEEL')) mat = 'Stainless Steel';
+  else if (u.includes('POLYETHYLENE'))    mat = 'Polyethylene';
+  // Allow "PE" only if no COPPER in name
+  else if (u.includes(' PE ') && !u.includes('COPPER')) mat = 'Polyethylene';
+
+  return mat ? { gas, mat } : null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CSV PARSING
+// Row 0: "6mm Copper Pipe,,8mm Copper Pipe,,..."
+// Row 1: "kPa/m,MJH,kPa/m,MJH,..."
+// Row 2+: data — columns paired (kPa/m, MJH) per pipe
+// ═══════════════════════════════════════════════════════════════════
+function parseCSV(text, gas, mat) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  if (lines.length < 3) return false;
+
+  // Row 0: extract pipe names at columns 0,2,4,...
+  const headerCells = lines[0].split(',');
+  const pipes = [];
+  for (let c = 0; c < headerCells.length; c += 2) {
+    const name = headerCells[c].trim();
+    if (name) pipes.push({ name, col: c });
+  }
+  if (pipes.length === 0) return false;
+
+  // Initialise storage
+  const key    = `${gas}_${mat}`;
+  const store  = {};
+  const order  = [];
+  pipes.forEach(p => { store[p.name] = []; order.push(p.name); });
+
+  // Rows 2+: parse data
+  for (let r = 2; r < lines.length; r++) {
+    const line = lines[r].trim();
+    if (!line) continue;
+    const cells = line.split(',');
+
+    const kpaM = parseFloat(cells[0]);
+    if (isNaN(kpaM) || kpaM <= 0) continue;
+
+    pipes.forEach(p => {
+      const mjh = parseFloat(cells[p.col + 1]);
+      if (!isNaN(mjh) && mjh > 0) {
+        store[p.name].push([kpaM, mjh]);
+      }
+    });
+  }
+
+  // Only store if at least one pipe has data
+  const hasData = order.some(n => store[n].length > 0);
+  if (!hasData) return false;
+
+  TABLES[key]     = store;
+  PIPE_ORDER[key] = order;
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INTERPOLATION  (linear, on sorted [[x,y]] pairs)
+// ═══════════════════════════════════════════════════════════════════
+function interpolate(pairs, x) {
+  if (!pairs || pairs.length === 0) return null;
+  if (x <= pairs[0][0]) return pairs[0][1];
+  if (x >= pairs[pairs.length - 1][0]) return pairs[pairs.length - 1][1];
+
+  // Binary search for surrounding segment
+  let lo = 0, hi = pairs.length - 1;
+  while (lo < hi - 1) {
+    const mid = (lo + hi) >> 1;
+    if (pairs[mid][0] <= x) lo = mid; else hi = mid;
+  }
+  const [x0, y0] = pairs[lo];
+  const [x1, y1] = pairs[hi];
+  const t = (x - x0) / (x1 - x0);
+  return y0 + t * (y1 - y0);
+}
+
+// Inverse: given MJH, find the kPa/m needed (monotonically increasing MJH with kPa/m)
+function inverseInterpolate(pairs, mjh) {
+  if (!pairs || pairs.length === 0) return null;
+  if (mjh <= pairs[0][1]) return pairs[0][0];
+  if (mjh >= pairs[pairs.length - 1][1]) return null; // exceeds table max
+
+  let lo = 0, hi = pairs.length - 1;
+  while (lo < hi - 1) {
+    const mid = (lo + hi) >> 1;
+    if (pairs[mid][1] <= mjh) lo = mid; else hi = mid;
+  }
+  const [x0, y0] = pairs[lo];
+  const [x1, y1] = pairs[hi];
+  if (y1 === y0) return x0;
+  const t = (mjh - y0) / (y1 - y0);
+  return x0 + t * (x1 - x0);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PIPE SELECTION
+// ═══════════════════════════════════════════════════════════════════
+function tableKey() {
+  return `${val('g-gas')}_${val('g-mat')}`;
+}
+
+function getPipes() {
+  const k = tableKey();
+  return PIPE_ORDER[k] || [];
+}
+
+function getCapacity(pipeName, kpaM) {
+  const k = tableKey();
+  const pairs = TABLES[k]?.[pipeName];
+  return pairs ? interpolate(pairs, kpaM) : null;
+}
+
+function getActualRate(pipeName, demandMJH) {
+  const k = tableKey();
+  const pairs = TABLES[k]?.[pipeName];
+  return pairs ? inverseInterpolate(pairs, demandMJH) : null;
+}
+
+function selectPipe(kpaM, demandMJH) {
+  const pipes = getPipes();
+  if (pipes.length === 0) return null;
+
+  for (let i = 0; i < pipes.length; i++) {
+    const cap = getCapacity(pipes[i], kpaM);
+    if (cap !== null && cap >= demandMJH) {
+      const actualRate = getActualRate(pipes[i], demandMJH);
+      const next = pipes[i + 1] ? {
+        name: pipes[i + 1],
+        cap:  getCapacity(pipes[i + 1], kpaM)
+      } : null;
+      return { pipe: pipes[i], cap, actualRate, pass: true, pipeIdx: i, next };
+    }
+  }
+
+  // Nothing passes — return largest
+  const last = pipes[pipes.length - 1];
+  const cap  = getCapacity(last, kpaM);
+  return { pipe: last, cap, actualRate: null, pass: false, pipeIdx: pipes.length - 1, next: null };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function val(id)    { return document.getElementById(id)?.value ?? ''; }
+function setV(id,v) { const el = document.getElementById(id); if (el) el.value       = v; }
+function setText(id,v){ const el = document.getElementById(id); if (el) el.textContent = v; }
+function fnum(n,d)  { return isNaN(n) || n===null ? '—' : (+n).toFixed(d ?? 4); }
+function filterDecimal(el) {
+  const v = el.value;
+  const filtered = v.replace(/[^0-9.]/g, '').replace(/^(\d*\.?\d*).*$/, '$1');
+  if (filtered !== v) { el.value = filtered; }
+}
+
+function currentKpaM() { return parseFloat(val('g-rate')) || 0; }
+function currentLen()  { return parseFloat(val('g-len'))  || 20; }
+function currentDp()   { return parseFloat(val('g-dp'))   || 0.75; }
+
+// ═══════════════════════════════════════════════════════════════════
+// GLOBAL SETTINGS
+// ═══════════════════════════════════════════════════════════════════
+function recalcRate() {
+  const dp  = currentDp();
+  const len = currentLen();
+  if (dp > 0 && len > 0) {
+    setV('g-rate', (dp / len).toFixed(4));
+  }
+  refreshAll();
+}
+
+function onRateOverride() {
+  refreshAll();
+}
+
+function onGasChange()  { refreshAll(); }
+function onMatChange()  { refreshAll(); }
+
+// ═══════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════════
+let activeTab = 'quick';
+function switchTab(t) {
+  activeTab = t;
+  document.getElementById('tab-quick').classList.toggle('active', t === 'quick');
+  document.getElementById('tab-toff') .classList.toggle('active', t === 'takeoff');
+  document.getElementById('pane-quick').style.display = t === 'quick'   ? '' : 'none';
+  document.getElementById('pane-toff') .style.display = t === 'takeoff' ? '' : 'none';
+  refreshAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// QUICK SIZE
+// ═══════════════════════════════════════════════════════════════════
+function runQuick() {
+  const qsResult  = document.getElementById('qs-result');
+  const qsNoTbl   = document.getElementById('qs-no-tables');
+  const kpaM      = currentKpaM();
+  const len       = currentLen();
+  const demand    = parseFloat(val('qs-dem'));
+
+  if (!tablesReady) {
+    qsResult.style.display = 'none';
+    qsNoTbl.style.display  = '';
+    return;
+  }
+  qsNoTbl.style.display = 'none';
+
+  if (isNaN(demand) || demand <= 0 || kpaM <= 0) {
+    qsResult.style.display = 'none';
+    return;
+  }
+
+  const r = selectPipe(kpaM, demand);
+  if (!r) { qsResult.style.display = 'none'; return; }
+
+  qsResult.style.display = '';
+  setText('qs-v-size', r.pipe);
+  setText('qs-v-cap',  r.cap !== null ? r.cap.toFixed(1) : '—');
+
+  const actualRate = r.actualRate;
+  const actualDp   = actualRate !== null ? (actualRate * len) : null;
+
+  setText('qs-v-rate', actualRate !== null ? actualRate.toFixed(6) : '—');
+  setText('qs-v-dp',   actualDp   !== null ? actualDp.toFixed(4)   : '—');
+
+  // Status
+  const statusEl = document.getElementById('qs-status');
+  const tSize    = document.getElementById('qs-t-size');
+  const tCap     = document.getElementById('qs-t-cap');
+  const tRate    = document.getElementById('qs-t-rate');
+  const tDp      = document.getElementById('qs-t-dp');
+
+  [tSize, tCap, tRate, tDp].forEach(t => t.className = 'tile');
+
+  if (r.pass) {
+    statusEl.innerHTML = '<span class="badge pass">✓ PASS</span>';
+    tSize.classList.add('pass');
+    // Warn if close to limit (>85%)
+    if (actualRate !== null && actualRate > kpaM * 0.85) {
+      statusEl.innerHTML = '<span class="badge warn">⚠ PASS (close to limit)</span>';
+      tRate.classList.add('warn');
+      tDp.classList.add('warn');
+    }
+  } else {
+    statusEl.innerHTML = '<span class="badge fail">✗ FAIL</span>';
+    [tSize, tCap, tRate, tDp].forEach(t => t.classList.add('fail'));
+  }
+
+  // Warn box
+  const warnEl = document.getElementById('qs-warn');
+  if (!r.pass) {
+    warnEl.textContent = `No ${val('g-mat')} pipe size can carry ${demand} MJ/h at the allowable ${kpaM.toFixed(6)} kPa/m rate. Consider a larger allowable ΔP, shorter run, or a different pipe material.`;
+    warnEl.style.display = '';
+  } else {
+    warnEl.style.display = 'none';
+  }
+
+  // Next pipe size
+  const nextEl = document.getElementById('qs-next');
+  if (r.next && r.next.cap !== null) {
+    setText('qs-nv-size', r.next.name);
+    setText('qs-nv-cap',  r.next.cap.toFixed(1));
+    nextEl.style.display = '';
+  } else {
+    nextEl.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PIPE TAKEOFF
+// ═══════════════════════════════════════════════════════════════════
+let sections = [];
+let nextSid  = 1;
+
+const JUNCTIONS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+function addSection() {
+  const i   = sections.length;
+  const sid = nextSid++;
+  sections.push({ sid, from: JUNCTIONS[i] || `J${i}`, to: JUNCTIONS[i+1] || `J${i+1}`, dem: '', len: '', add: 20 });
+  renderTakeoff();
+}
+
+function removeSection(sid) {
+  sections = sections.filter(s => s.sid !== sid);
+  renderTakeoff();
+}
+
+function readSectionInputs() {
+  sections.forEach(s => {
+    s.from = document.getElementById(`s${s.sid}-from`)?.value ?? s.from;
+    s.to   = document.getElementById(`s${s.sid}-to`)?.value   ?? s.to;
+    s.dem  = parseFloat(document.getElementById(`s${s.sid}-dem`)?.value) || 0;
+    s.len  = parseFloat(document.getElementById(`s${s.sid}-len`)?.value) || 0;
+    s.add  = parseFloat(document.getElementById(`s${s.sid}-add`)?.value) ?? 20;
+  });
+}
+
+function renderTakeoff() {
+  const noTbl  = document.getElementById('toff-no-tables');
+  const content= document.getElementById('toff-content');
+  const tbody  = document.getElementById('toff-body');
+  const sumDiv = document.getElementById('toff-summary');
+
+  if (!tablesReady) {
+    noTbl.style.display   = '';
+    content.style.display = 'none';
+    return;
+  }
+  noTbl.style.display   = 'none';
+  content.style.display = '';
+
+  readSectionInputs();
+
+  const kpaM = currentKpaM();
+  let allPass   = true;
+  let totalDpSum = 0;
+  let hasResults = false;
+
+  let html = '';
+  sections.forEach((s, idx) => {
+    const totalMJH = s.dem > 0 ? s.dem * (1 + s.add / 100) : 0;
+    let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', rowClass = '';
+
+    if (s.dem > 0 && s.len > 0 && kpaM > 0) {
+      const r = selectPipe(kpaM, totalMJH);
+      if (r) {
+        hasResults    = true;
+        pipe          = r.pipe;
+        cap           = r.cap !== null ? r.cap.toFixed(1) : '—';
+        actualRate    = r.actualRate !== null ? r.actualRate.toFixed(6) : '—';
+        const dp      = r.actualRate !== null ? (r.actualRate * s.len) : null;
+        actualDp      = dp !== null ? dp.toFixed(4) : '—';
+        if (dp !== null) totalDpSum += dp;
+        if (r.pass) {
+          const pct = r.actualRate !== null ? r.actualRate / kpaM : 0;
+          if (pct > 0.85) {
+            statusHtml = '<span class="badge warn">⚠ PASS</span>';
+            rowClass   = 'style="background:#fffbeb;"';
+          } else {
+            statusHtml = '<span class="badge pass">✓</span>';
+          }
+        } else {
+          statusHtml = '<span class="badge fail">✗ FAIL</span>';
+          allPass    = false;
+          rowClass   = 'style="background:#fff5f5;"';
+        }
+      }
+    }
+
+    html += `
+      <tr ${rowClass}>
+        <td style="color:var(--muted);font-weight:700;">${idx + 1}</td>
+        <td><input type="text" id="s${s.sid}-from" value="${s.from}" style="width:44px" oninput="onToffInput()"></td>
+        <td><input type="text" id="s${s.sid}-to"   value="${s.to}"   style="width:44px" oninput="onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" id="s${s.sid}-dem" value="${s.dem||''}" placeholder="MJ/h" oninput="filterDecimal(this);onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" id="s${s.sid}-len" value="${s.len||''}" placeholder="m"    oninput="filterDecimal(this);onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" id="s${s.sid}-add" value="${s.add}"  oninput="filterDecimal(this);onToffInput()"></td>
+        <td style="font-weight:700;color:var(--blue);">${totalMJH > 0 ? totalMJH.toFixed(1) : '—'}</td>
+        <td style="font-weight:700;">${pipe}</td>
+        <td>${cap}</td>
+        <td style="font-size:.72rem;color:var(--muted);">${actualRate}</td>
+        <td style="font-weight:700;">${actualDp}</td>
+        <td>${statusHtml}</td>
+        <td><button class="btn btn-danger" onclick="removeSection(${s.sid})">✕</button></td>
+      </tr>`;
+  });
+
+  if (sections.length === 0) {
+    html = `<tr><td colspan="13" style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.8rem;">No sections — click "+ Add Row" above.</td></tr>`;
+  }
+
+  tbody.innerHTML = html;
+
+  // Summary
+  if (hasResults) {
+    const badge = allPass
+      ? '<span class="badge pass">✓ All sections PASS</span>'
+      : '<span class="badge fail">✗ One or more sections FAIL</span>';
+    sumDiv.innerHTML = `
+      ${badge}
+      &nbsp;·&nbsp; <strong>Cumulative ΔP (series): ${totalDpSum.toFixed(4)} kPa</strong>
+      &nbsp;·&nbsp; Allowable ΔP: ${currentDp().toFixed(4)} kPa
+      ${totalDpSum > currentDp() ? '<span style="color:var(--red);font-weight:700;"> — exceeds budget!</span>' : ''}`;
+    sumDiv.style.display = '';
+
+    const sumBadge = document.getElementById('toff-summary-badge');
+    sumBadge.innerHTML = allPass ? '<span class="badge pass">✓ PASS</span>' : '<span class="badge fail">✗ FAIL</span>';
+  } else {
+    sumDiv.style.display = 'none';
+    document.getElementById('toff-summary-badge').innerHTML = '';
+  }
+}
+
+let toffTimer = null;
+function onToffInput() {
+  clearTimeout(toffTimer);
+  toffTimer = setTimeout(renderTakeoff, 250);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GLOBAL REFRESH
+// ═══════════════════════════════════════════════════════════════════
+function refreshAll() {
+  runQuick();
+  renderTakeoff();
+  updateLoadBanner();
+}
+
+function updateLoadBanner() {
+  const loaded  = EXPECTED_KEYS.filter(k => TABLES[k]);
+  const banner  = document.getElementById('load-banner');
+  const msgEl   = document.getElementById('load-msg');
+  const statEl  = document.getElementById('load-status');
+  const chipEl  = document.getElementById('chip-list');
+  const dropZ   = document.getElementById('drop-zone');
+
+  tablesReady = loaded.length > 0;
+
+  if (loaded.length === 0) {
+    banner.className = 'load-banner';
+    msgEl.innerHTML  = '<strong>No tables loaded.</strong> Click "Load CSV Tables" and select all your CSV files.';
+    statEl.textContent = '';
+    chipEl.innerHTML   = '';
+    dropZ.style.display = '';
+    return;
+  }
+
+  dropZ.style.display = 'none';
+  banner.className = 'load-banner loaded';
+  const sourceLabel = dataSource === 'built-in' ? 'Built-in NZ/AS 5601 tables' : 'Custom CSV tables';
+  msgEl.innerHTML  = `<strong>${sourceLabel}: ${loaded.length} / ${EXPECTED_KEYS.length}</strong>`;
+  statEl.textContent = loaded.length < EXPECTED_KEYS.length
+    ? `Missing: ${EXPECTED_KEYS.filter(k => !TABLES[k]).map(k => k.replace('_',' · ')).join(', ')}`
+    : 'All tables present.';
+
+  chipEl.innerHTML = loaded.map(k => {
+    const pipes = PIPE_ORDER[k] || [];
+    return `<span class="chip ok" title="${pipes.join(', ')}">${k.replace('_',' · ')} (${pipes.length} sizes)</span>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FILE LOADING
+// ═══════════════════════════════════════════════════════════════════
+function triggerFileInput() {
+  document.getElementById('csv-input').click();
+}
+
+function handleFiles(fileList) {
+  const files = Array.from(fileList);
+  let pending = files.length;
+  if (pending === 0) return;
+
+  files.forEach(file => {
+    const id = identifyCSV(file.name);
+    if (!id) { pending--; if (pending === 0) refreshAll(); return; }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      parseCSV(e.target.result, id.gas, id.mat);
+      dataSource = 'csv';
+      pending--;
+      if (pending === 0) refreshAll();
+    };
+    reader.readAsText(file);
+  });
+}
+
+// Drag & drop
+function onDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function onDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+initFromBakedData();  // load built-in tables automatically
+recalcRate();         // compute initial kPa/m
+refreshAll();
+addSection();      // start with one blank takeoff row
+</script>
+<footer style="text-align:center;padding:1.5rem 1rem 2rem;font-size:0.8rem;color:var(--muted);max-width:800px;margin:0 auto;">
+  This is a useful sizing tool — always confirm final pipe sizing using the process detailed in NZ/AS&nbsp;5601 (current edition) Gas Installation Standard.
+</footer>
+</body>
+</html>

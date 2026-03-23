@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Rounded blue background -->
+  <rect width="512" height="512" rx="96" fill="#1e40af"/>
+  <!-- Horizontal pipe -->
+  <rect x="60" y="220" width="392" height="72" rx="36" fill="white"/>
+  <!-- Vertical branch up from centre -->
+  <rect x="220" y="88" width="72" height="168" rx="36" fill="white"/>
+  <!-- Flame body (orange) -->
+  <path d="M256,96 C244,76 222,58 238,36 C228,62 256,52 256,96Z" fill="#fb923c"/>
+  <path d="M256,96 C268,76 290,54 274,30 C284,58 256,52 256,96Z" fill="#fb923c"/>
+  <!-- Flame inner (yellow) -->
+  <path d="M256,90 C248,74 238,62 248,48 C244,66 256,60 256,90Z" fill="#fbbf24"/>
+</svg>

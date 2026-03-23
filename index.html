@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NZ/AS 5601 Gas Pipe Sizer</title>
+  <title>My Pipe Girth Sizer</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e40af">
+
+  <!-- iOS PWA support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pipe Sizer">
+  <link rel="apple-touch-icon" href="icon.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1304,6 +1314,11 @@ initFromBakedData();  // load built-in tables automatically
 recalcRate();         // compute initial kPa/m
 refreshAll();
 addSection();      // start with one blank takeoff row
+
+// Register service worker for offline / PWA support
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 <footer style="text-align:center;padding:1.5rem 1rem 2rem;font-size:0.8rem;color:var(--muted);max-width:800px;margin:0 auto;">
   This is a useful sizing tool — always confirm final pipe sizing using the process detailed in NZ/AS&nbsp;5601 (current edition) Gas Installation Standard.

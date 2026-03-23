@@ -1,6 +1,6 @@
 {
-  "name": "My Pipe Girth Sizer",
-  "short_name": "Pipe Sizer",
+  "name": "My Pipe Girth",
+  "short_name": "My Pipe Girth",
   "description": "Gas pipe sizing tool for NZ/AS 5601",
   "start_url": "./",
   "display": "standalone",

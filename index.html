@@ -340,17 +340,17 @@
         </div>
         <div class="fg">
           <label for="g-dp">Allowable ΔP (kPa)</label>
-          <input type="text" inputmode="decimal" id="g-dp" value="0.75" oninput="filterDecimal(this);recalcRate()">
+          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-dp" value="0.75" oninput="recalcRate()">
           <span class="hint">Total pressure budget</span>
         </div>
         <div class="fg">
           <label for="g-len">Longest Run (m)</label>
-          <input type="text" inputmode="decimal" id="g-len" value="20" oninput="filterDecimal(this);recalcRate()">
+          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-len" value="20" oninput="recalcRate()">
           <span class="hint">For Quick Size mode</span>
         </div>
         <div class="fg">
           <label for="g-rate">Allowable kPa/m</label>
-          <input type="text" inputmode="decimal" id="g-rate" value="0.0375" class="computed" oninput="filterDecimal(this);onRateOverride()">
+          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-rate" value="0.0375" class="computed" oninput="onRateOverride()">
           <span class="hint">= ΔP ÷ Longest Run</span>
         </div>
       </div>
@@ -371,7 +371,7 @@
         <div class="fgrid">
           <div class="fg" style="grid-column: span 2;">
             <label for="qs-dem">Total Demand (MJ/h)</label>
-            <input type="text" inputmode="decimal" id="qs-dem" placeholder="e.g. 450" oninput="filterDecimal(this);runQuick()">
+            <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
           </div>
         </div>
 
@@ -902,11 +902,15 @@ function val(id)    { return document.getElementById(id)?.value ?? ''; }
 function setV(id,v) { const el = document.getElementById(id); if (el) el.value       = v; }
 function setText(id,v){ const el = document.getElementById(id); if (el) el.textContent = v; }
 function fnum(n,d)  { return isNaN(n) || n===null ? '—' : (+n).toFixed(d ?? 4); }
-function filterDecimal(el) {
-  const v = el.value;
-  const filtered = v.replace(/[^0-9.]/g, '').replace(/^(\d*\.?\d*).*$/, '$1');
-  if (filtered !== v) { el.value = filtered; }
-}
+// Block invalid characters on decimal inputs before they land in the field,
+// so we never rewrite el.value (which dismisses the mobile keyboard).
+document.addEventListener('beforeinput', function(e) {
+  if (!e.target.matches('input[inputmode="decimal"]')) return;
+  if (e.inputType !== 'insertText') return;
+  const ch = e.data || '';
+  if (!/^[0-9.]$/.test(ch)) { e.preventDefault(); return; }
+  if (ch === '.' && e.target.value.includes('.')) e.preventDefault();
+});
 
 function currentKpaM() { return parseFloat(val('g-rate')) || 0; }
 function currentLen()  { return parseFloat(val('g-len'))  || 20; }
@@ -1109,9 +1113,9 @@ function renderTakeoff() {
         <td style="color:var(--muted);font-weight:700;">${idx + 1}</td>
         <td><input type="text" id="s${s.sid}-from" value="${s.from}" style="width:44px" oninput="onToffInput()"></td>
         <td><input type="text" id="s${s.sid}-to"   value="${s.to}"   style="width:44px" oninput="onToffInput()"></td>
-        <td><input type="text" inputmode="decimal" id="s${s.sid}-dem" value="${s.dem||''}" placeholder="MJ/h" oninput="filterDecimal(this);onToffInput()"></td>
-        <td><input type="text" inputmode="decimal" id="s${s.sid}-len" value="${s.len||''}" placeholder="m"    oninput="filterDecimal(this);onToffInput()"></td>
-        <td><input type="text" inputmode="decimal" id="s${s.sid}-add" value="${s.add}"  oninput="filterDecimal(this);onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-dem" value="${s.dem||''}" placeholder="MJ/h" oninput="onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-len" value="${s.len||''}" placeholder="m"    oninput="onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-add" value="${s.add}"  oninput="onToffInput()"></td>
         <td style="font-weight:700;color:var(--blue);">${totalMJH > 0 ? totalMJH.toFixed(1) : '—'}</td>
         <td style="font-weight:700;">${pipe}</td>
         <td>${cap}</td>

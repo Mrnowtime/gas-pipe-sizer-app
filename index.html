@@ -291,6 +291,23 @@
       table { font-size: .72rem; }
       thead th, tbody td { padding: .3rem .4rem; }
     }
+
+    @media print {
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { background: white; }
+      .hdr { box-shadow: none; border-bottom: 1px solid #ddd; padding: .5rem 1rem; }
+      .hdr-right, .load-banner, .drop-zone, .tabs, .no-print,
+      .btn-danger, .btn-green, .btn-purple { display: none !important; }
+      .wrap { padding: 0; max-width: 100%; }
+      .card { box-shadow: none; border: 1px solid #ddd; margin-bottom: .75rem; }
+      footer { margin-top: 1rem; font-size: .7rem; color: #666; }
+
+      /* Show only the pane being printed */
+      body.printing-quick #pane-toff { display: none !important; }
+      body.printing-quick #pane-quick { display: block !important; }
+      body.printing-toff  #pane-quick { display: none !important; }
+      body.printing-toff  #pane-toff  { display: block !important; }
+    }
   </style>
 </head>
 <body>
@@ -438,6 +455,9 @@
           <div class="icon">📂</div>
           <p>Load your CSV sizing tables to enable calculations.</p>
         </div>
+        <div style="padding:.75rem .875rem 0;text-align:right;" class="no-print">
+          <button class="btn" onclick="printTab('quick')" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">⬇ Download as PDF</button>
+        </div>
       </div>
     </div>
   </div>
@@ -482,6 +502,9 @@
           </table>
         </div>
         <div id="toff-summary" style="display:none;padding:.75rem .875rem;border-top:1px solid var(--border);font-size:.78rem;"></div>
+      </div>
+      <div style="padding:.75rem .875rem;text-align:right;" class="no-print">
+        <button class="btn" onclick="printTab('toff')" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">⬇ Download as PDF</button>
       </div>
     </div>
   </div>
@@ -1320,6 +1343,12 @@ initFromBakedData();  // load built-in tables automatically
 recalcRate();         // compute initial kPa/m
 refreshAll();
 addSection();      // start with one blank takeoff row
+
+function printTab(tab) {
+  document.body.classList.add('printing-' + tab);
+  window.addEventListener('afterprint', () => document.body.classList.remove('printing-' + tab), { once: true });
+  window.print();
+}
 
 // Register service worker for offline / PWA support
 if ('serviceWorker' in navigator) {

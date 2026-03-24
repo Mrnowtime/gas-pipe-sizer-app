@@ -367,17 +367,17 @@
         </div>
         <div class="fg">
           <label for="g-dp">Allowable ΔP (kPa)</label>
-          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-dp" value="0.75" oninput="recalcRate()">
+          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-dp" placeholder="e.g. 0.7" oninput="recalcRate()">
           <span class="hint">Total pressure budget</span>
         </div>
         <div class="fg">
           <label for="g-len">Longest Run (m)</label>
-          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-len" value="20" oninput="recalcRate()">
+          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-len" placeholder="e.g. 20" oninput="recalcRate()">
           <span class="hint">For Quick Size mode</span>
         </div>
         <div class="fg">
           <label for="g-rate">Allowable kPa/m</label>
-          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-rate" value="0.0375" class="computed" oninput="onRateOverride()">
+          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-rate" class="computed" placeholder="—" oninput="onRateOverride()">
           <span class="hint">= ΔP ÷ Longest Run</span>
         </div>
       </div>

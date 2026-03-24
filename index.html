@@ -1027,6 +1027,7 @@ function getAllJobs() {
 function saveJob() {
   const name = document.getElementById('job-name').value.trim();
   if (!name) { alert('Please enter a Job Name before saving.'); return; }
+  readSectionInputs(); // sync DOM → sections array before saving
   const jobs = getAllJobs();
   jobs[name] = {
     name,
@@ -1198,9 +1199,11 @@ function removeSection(sid) {
 
 function readSectionInputs() {
   sections.forEach(s => {
+    const demEl = document.getElementById(`s${s.sid}-dem`);
+    if (!demEl) return; // row not in DOM yet (e.g. during loadJob) — keep existing values
     s.from = document.getElementById(`s${s.sid}-from`)?.value ?? s.from;
     s.to   = document.getElementById(`s${s.sid}-to`)?.value   ?? s.to;
-    s.dem  = parseFloat(document.getElementById(`s${s.sid}-dem`)?.value) || 0;
+    s.dem  = parseFloat(demEl.value) || 0;
     s.len  = parseFloat(document.getElementById(`s${s.sid}-len`)?.value) || 0;
     s.add  = parseFloat(document.getElementById(`s${s.sid}-add`)?.value) || 0;
   });

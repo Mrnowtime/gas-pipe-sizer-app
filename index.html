@@ -397,12 +397,16 @@
       <div class="card-body">
         <div class="fgrid">
           <div class="fg">
-            <label for="qs-dem">Total Demand (MJ/h)</label>
+            <label for="qs-dem">Demand (MJ/h)</label>
             <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
           </div>
           <div class="fg">
             <label for="qs-add">Add %</label>
-            <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-add" value="20" oninput="runQuick()">
+            <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-add" placeholder="e.g. 20" oninput="runQuick()">
+          </div>
+          <div class="fg">
+            <label for="qs-total">Total Demand (MJ/h)</label>
+            <input type="text" id="qs-total" class="computed" readonly tabindex="-1" placeholder="—">
           </div>
         </div>
 
@@ -996,6 +1000,7 @@ function runQuick() {
   const demand    = parseFloat(val('qs-dem'));
   const addPct    = parseFloat(val('qs-add')) || 0;
   const totalMJH  = demand > 0 ? demand * (1 + addPct / 100) : demand;
+  setV('qs-total', demand > 0 ? totalMJH.toFixed(1) : '');
 
   if (!tablesReady) {
     qsResult.style.display = 'none';

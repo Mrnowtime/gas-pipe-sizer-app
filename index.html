@@ -1059,6 +1059,11 @@ function loadJob(name) {
   sections = (job.sections || []).map(s => ({ ...s }));
   nextSid  = sections.length ? Math.max(...sections.map(s => s.sid)) + 1 : 0;
 
+  // Wipe stale DOM rows so readSectionInputs() can't read old values
+  // (the initial blank row shares sid=0 with the first saved row)
+  const tbody = document.getElementById('toff-body');
+  if (tbody) tbody.innerHTML = '';
+
   recalcRate();
   refreshAll();
   switchTab('quick');

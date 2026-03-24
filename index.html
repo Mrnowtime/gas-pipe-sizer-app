@@ -983,10 +983,14 @@ function currentDp()   { return parseFloat(val('g-dp'))   || 0.75; }
 // GLOBAL SETTINGS
 // ═══════════════════════════════════════════════════════════════════
 function recalcRate() {
-  const dp  = currentDp();
-  const len = currentLen();
-  if (dp > 0 && len > 0) {
+  const dpRaw  = val('g-dp');
+  const lenRaw = val('g-len');
+  const dp     = parseFloat(dpRaw);
+  const len    = parseFloat(lenRaw);
+  if (dpRaw && lenRaw && dp > 0 && len > 0) {
     setV('g-rate', (dp / len).toFixed(4));
+  } else {
+    setV('g-rate', '');
   }
   refreshAll();
 }

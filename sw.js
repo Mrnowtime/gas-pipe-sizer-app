@@ -1,4 +1,4 @@
-const CACHE = 'pipe-sizer-v9';
+const CACHE = 'pipe-sizer-v10';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

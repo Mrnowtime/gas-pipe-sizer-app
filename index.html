@@ -347,9 +347,12 @@
   <!-- Job name -->
   <div class="card">
     <div class="card-body" style="padding:.75rem .875rem;">
-      <div class="fg">
-        <label for="job-name">Job Name</label>
-        <input type="text" id="job-name" placeholder="Enter Job Name" autocomplete="off" style="font-size:1rem;font-weight:600;">
+      <div style="display:flex;gap:.5rem;align-items:flex-end;">
+        <div class="fg" style="flex:1;">
+          <label for="job-name">Job Name</label>
+          <input type="text" id="job-name" placeholder="Enter Job Name" autocomplete="off" style="font-size:1rem;font-weight:600;">
+        </div>
+        <button class="btn btn-green" onclick="saveJob()" style="white-space:nowrap;margin-bottom:1px;">💾 Save Job</button>
       </div>
     </div>
   </div>
@@ -398,6 +401,7 @@
   <div class="tabs">
     <button class="tab active" id="tab-quick" onclick="switchTab('quick')">🔍 Quick Size</button>
     <button class="tab"        id="tab-toff"  onclick="switchTab('takeoff')">📋 Pipe Takeoff</button>
+    <button class="tab"        id="tab-saved" onclick="switchTab('saved')">📁 Saved Jobs</button>
   </div>
 
   <!-- QUICK SIZE -->
@@ -520,6 +524,14 @@
       <div style="padding:.75rem .875rem;text-align:right;" class="no-print">
         <button class="btn" onclick="printTab('toff')" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">⬇ Download as PDF</button>
       </div>
+    </div>
+  </div>
+
+  <!-- SAVED JOBS -->
+  <div id="pane-saved" style="display:none;">
+    <div class="card">
+      <div class="card-hd"><h2>Saved Jobs</h2></div>
+      <div id="saved-list" style="padding:.5rem .875rem 1rem;"></div>
     </div>
   </div>
 
@@ -992,11 +1004,94 @@ function onMatChange()  { refreshAll(); }
 let activeTab = 'quick';
 function switchTab(t) {
   activeTab = t;
-  document.getElementById('tab-quick').classList.toggle('active', t === 'quick');
-  document.getElementById('tab-toff') .classList.toggle('active', t === 'takeoff');
+  document.getElementById('tab-quick') .classList.toggle('active', t === 'quick');
+  document.getElementById('tab-toff')  .classList.toggle('active', t === 'takeoff');
+  document.getElementById('tab-saved') .classList.toggle('active', t === 'saved');
   document.getElementById('pane-quick').style.display = t === 'quick'   ? '' : 'none';
   document.getElementById('pane-toff') .style.display = t === 'takeoff' ? '' : 'none';
+  document.getElementById('pane-saved').style.display = t === 'saved'   ? '' : 'none';
+  if (t === 'saved') renderSavedJobs();
+  else refreshAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// JOB SAVE / LOAD
+// ═══════════════════════════════════════════════════════════════════
+const JOB_STORE = 'pipeGirthJobs';
+
+function getAllJobs() {
+  try { return JSON.parse(localStorage.getItem(JOB_STORE)) || {}; }
+  catch { return {}; }
+}
+
+function saveJob() {
+  const name = document.getElementById('job-name').value.trim();
+  if (!name) { alert('Please enter a Job Name before saving.'); return; }
+  const jobs = getAllJobs();
+  jobs[name] = {
+    name,
+    savedAt: new Date().toLocaleString(),
+    gas:    val('g-gas'),
+    mat:    val('g-mat'),
+    dp:     val('g-dp'),
+    len:    val('g-len'),
+    qsDem:  val('qs-dem'),
+    qsAdd:  val('qs-add'),
+    sections: sections.map(s => ({ ...s }))
+  };
+  localStorage.setItem(JOB_STORE, JSON.stringify(jobs));
+  alert(`"${name}" saved.`);
+}
+
+function loadJob(name) {
+  const job = getAllJobs()[name];
+  if (!job) return;
+
+  document.getElementById('job-name').value = job.name;
+  const gasEl = document.getElementById('g-gas');
+  const matEl = document.getElementById('g-mat');
+  gasEl.value = job.gas; matEl.value = job.mat;
+  setV('g-dp',    job.dp);
+  setV('g-len',   job.len);
+  setV('qs-dem',  job.qsDem);
+  setV('qs-add',  job.qsAdd);
+  sections = (job.sections || []).map(s => ({ ...s }));
+  nextSid  = sections.length ? Math.max(...sections.map(s => s.sid)) + 1 : 0;
+
+  recalcRate();
   refreshAll();
+  switchTab('quick');
+}
+
+function deleteJob(name) {
+  if (!confirm(`Delete "${name}"?`)) return;
+  const jobs = getAllJobs();
+  delete jobs[name];
+  localStorage.setItem(JOB_STORE, JSON.stringify(jobs));
+  renderSavedJobs();
+}
+
+function renderSavedJobs() {
+  const el   = document.getElementById('saved-list');
+  const jobs = getAllJobs();
+  const keys = Object.keys(jobs);
+  if (keys.length === 0) {
+    el.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0;">No saved jobs yet. Fill in a Job Name and tap 💾 Save Job.</p>';
+    return;
+  }
+  el.innerHTML = keys.map(k => {
+    const j = jobs[k];
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:700;font-size:.95rem;">${j.name}</div>
+        <div style="font-size:.72rem;color:var(--muted);">${j.savedAt} &nbsp;·&nbsp; ${j.gas === 'LPG' ? 'LPG' : 'Natural Gas'} &nbsp;·&nbsp; ${j.mat}</div>
+      </div>
+      <div style="display:flex;gap:.4rem;">
+        <button class="btn btn-green btn-sm" onclick="loadJob(${JSON.stringify(k)})">Load</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteJob(${JSON.stringify(k)})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════

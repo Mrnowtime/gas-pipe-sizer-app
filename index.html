@@ -392,6 +392,11 @@
           <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-rate" class="computed" placeholder="—" oninput="onRateOverride()">
           <span class="hint">= ΔP ÷ Longest Run</span>
         </div>
+        <div class="fg">
+          <label for="g-add">Add %</label>
+          <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-add" placeholder="e.g. 20" oninput="refreshAll()">
+          <span class="hint">Applied to all demands</span>
+        </div>
       </div>
     </div>
   </div>
@@ -412,10 +417,6 @@
           <div class="fg">
             <label for="qs-dem">Demand (MJ/h)</label>
             <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
-          </div>
-          <div class="fg">
-            <label for="qs-add">Add %</label>
-            <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-add" placeholder="e.g. 20" oninput="runQuick()">
           </div>
           <div class="fg">
             <label for="qs-total">Total Demand (MJ/h)</label>
@@ -505,7 +506,7 @@
                 <th>To</th>
                 <th>Demand<br>(MJ/h)</th>
                 <th>Length<br>(m)</th>
-                <th>Add %</th>
+
                 <th>Total MJ/h<br>(sized for)</th>
                 <th>Pipe Size</th>
                 <th>Capacity<br>(MJ/h)</th>
@@ -1035,8 +1036,8 @@ function saveJob() {
     mat:    val('g-mat'),
     dp:     val('g-dp'),
     len:    val('g-len'),
+    add:    val('g-add'),
     qsDem:  val('qs-dem'),
-    qsAdd:  val('qs-add'),
     sections: sections.map(s => ({ ...s }))
   };
   localStorage.setItem(JOB_STORE, JSON.stringify(jobs));
@@ -1053,8 +1054,8 @@ function loadJob(name) {
   gasEl.value = job.gas; matEl.value = job.mat;
   setV('g-dp',    job.dp);
   setV('g-len',   job.len);
+  setV('g-add',   job.add);
   setV('qs-dem',  job.qsDem);
-  setV('qs-add',  job.qsAdd);
   sections = (job.sections || []).map(s => ({ ...s }));
   nextSid  = sections.length ? Math.max(...sections.map(s => s.sid)) + 1 : 0;
 
@@ -1109,7 +1110,7 @@ function runQuick() {
   const kpaM      = currentKpaM();
   const len       = currentLen();
   const demand    = parseFloat(val('qs-dem'));
-  const addPct    = parseFloat(val('qs-add')) || 0;
+  const addPct    = parseFloat(val('g-add')) || 0;
   const totalMJH  = demand > 0 ? demand * (1 + addPct / 100) : demand;
   setV('qs-total', demand > 0 ? totalMJH.toFixed(1) : '');
 
@@ -1192,7 +1193,7 @@ const JUNCTIONS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 function addSection() {
   const i   = sections.length;
   const sid = nextSid++;
-  sections.push({ sid, from: JUNCTIONS[i] || `J${i}`, to: JUNCTIONS[i+1] || `J${i+1}`, dem: '', len: '', add: '' });
+  sections.push({ sid, from: JUNCTIONS[i] || `J${i}`, to: JUNCTIONS[i+1] || `J${i+1}`, dem: '', len: '' });
   renderTakeoff();
 }
 
@@ -1209,7 +1210,6 @@ function readSectionInputs() {
     s.to   = document.getElementById(`s${s.sid}-to`)?.value   ?? s.to;
     s.dem  = parseFloat(demEl.value) || 0;
     s.len  = parseFloat(document.getElementById(`s${s.sid}-len`)?.value) || 0;
-    s.add  = parseFloat(document.getElementById(`s${s.sid}-add`)?.value) || 0;
   });
 }
 
@@ -1236,7 +1236,8 @@ function renderTakeoff() {
 
   let html = '';
   sections.forEach((s, idx) => {
-    const totalMJH = s.dem > 0 ? s.dem * (1 + s.add / 100) : 0;
+    const addPct   = parseFloat(val('g-add')) || 0;
+    const totalMJH = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
     let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', rowClass = '';
 
     if (s.dem > 0 && s.len > 0 && kpaM > 0) {
@@ -1272,7 +1273,7 @@ function renderTakeoff() {
         <td><input type="text" id="s${s.sid}-to"   value="${s.to}"   style="width:44px" oninput="onToffInput()"></td>
         <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-dem" value="${s.dem||''}" placeholder="MJ/h" oninput="onToffInput()"></td>
         <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-len" value="${s.len||''}" placeholder="m"    oninput="onToffInput()"></td>
-        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-add" value="${s.add||''}" placeholder="e.g. 20" oninput="onToffInput()"></td>
+
         <td id="s${s.sid}-total" style="font-weight:700;color:var(--blue);">${totalMJH > 0 ? totalMJH.toFixed(1) : '—'}</td>
         <td id="s${s.sid}-pipe" style="font-weight:700;">${pipe}</td>
         <td id="s${s.sid}-cap">${cap}</td>
@@ -1319,7 +1320,8 @@ function updateTakeoffResults() {
   let allPass = true, totalDpSum = 0, hasResults = false;
 
   sections.forEach(s => {
-    const totalMJH = s.dem > 0 ? s.dem * (1 + s.add / 100) : 0;
+    const addPct   = parseFloat(val('g-add')) || 0;
+    const totalMJH = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
     let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', bgColor = '';
 
     if (s.dem > 0 && s.len > 0 && kpaM > 0) {

@@ -1,5 +1,5 @@
-const CACHE = 'pipe-sizer-v19';
-const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
+const CACHE = 'pipe-sizer-v20';
+const ASSETS = ['./', './index.html', './manifest.json', './icon.svg', './logo.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

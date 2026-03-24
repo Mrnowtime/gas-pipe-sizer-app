@@ -399,15 +399,15 @@
 
   <!-- Mode tabs -->
   <div class="tabs">
-    <button class="tab active" id="tab-quick" onclick="switchTab('quick')">🔍 Quick Size</button>
-    <button class="tab"        id="tab-toff"  onclick="switchTab('takeoff')">📋 Pipe Takeoff</button>
+    <button class="tab active" id="tab-quick" onclick="switchTab('quick')">🔍 Longest Mainline</button>
+    <button class="tab"        id="tab-toff"  onclick="switchTab('takeoff')">📋 Lateral Pipe Takeoff</button>
     <button class="tab"        id="tab-saved" onclick="switchTab('saved')">📁 Saved Jobs</button>
   </div>
 
   <!-- QUICK SIZE -->
   <div id="pane-quick">
     <div class="card">
-      <div class="card-hd"><h2>Quick Size</h2><span id="qs-badge"></span></div>
+      <div class="card-hd"><h2>Longest Mainline</h2><span id="qs-badge"></span></div>
       <div class="card-body">
         <div class="fgrid">
           <div class="fg">
@@ -484,7 +484,7 @@
   <div id="pane-toff" style="display:none;">
     <div class="card">
       <div class="card-hd">
-        <h2>Pipe Takeoff</h2>
+        <h2>Lateral Pipe Takeoff</h2>
         <div style="display:flex;gap:.35rem;align-items:center;">
           <span id="toff-summary-badge"></span>
           <button class="btn btn-green btn-sm" onclick="addSection()">+ Add Row</button>

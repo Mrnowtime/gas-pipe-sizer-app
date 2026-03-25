@@ -292,9 +292,11 @@
       thead th, tbody td { padding: .3rem .4rem; }
     }
 
+    @page { margin: 0; }
+
     @media print {
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      body { background: white; }
+      body { background: white; padding: 10mm; }
       .hdr { box-shadow: none; border-bottom: 1px solid #ddd; padding: .5rem 1rem; }
       .hdr-right, .load-banner, .drop-zone, .tabs, .no-print,
       .btn-danger, .btn-green, .btn-purple { display: none !important; }

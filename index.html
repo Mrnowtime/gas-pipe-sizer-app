@@ -292,6 +292,8 @@
       thead th, tbody td { padding: .3rem .4rem; }
     }
 
+    .print-watermark { display: none; }
+
     @page { margin: 0; }
 
     @media print {
@@ -303,6 +305,16 @@
       .wrap { padding: 0; max-width: 100%; }
       .card { box-shadow: none; border: 1px solid #ddd; margin-bottom: .75rem; }
       footer { margin-top: 1rem; font-size: .7rem; color: #666; }
+
+      .print-watermark {
+        display: block;
+        text-align: center;
+        padding: 2rem 0 1rem;
+      }
+      .print-watermark img {
+        width: 220px;
+        opacity: 0.18;
+      }
 
       /* Always show both content panes; hide saved jobs */
       #pane-quick { display: block !important; }
@@ -1518,5 +1530,8 @@ if ('serviceWorker' in navigator) {
 <footer style="text-align:center;padding:1.5rem 1rem 2rem;font-size:0.8rem;color:var(--muted);max-width:800px;margin:0 auto;">
   This is a useful sizing tool — always confirm final pipe sizing using the process detailed in NZ/AS&nbsp;5601 (current edition) Gas Installation Standard.
 </footer>
+<div class="print-watermark">
+  <img src="logo.png" alt="">
+</div>
 </body>
 </html>

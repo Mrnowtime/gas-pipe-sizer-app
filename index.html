@@ -1101,6 +1101,7 @@ function renderSavedJobs() {
       </div>
       <div style="display:flex;gap:.4rem;">
         <button class="btn btn-green btn-sm" data-k="${esc}" onclick="loadJob(this.dataset.k)">Load</button>
+        <button class="btn btn-sm" data-k="${esc}" onclick="shareJob(this.dataset.k)" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">Share</button>
         <button class="btn btn-danger btn-sm" data-k="${esc}" onclick="deleteJob(this.dataset.k)">Delete</button>
       </div>
     </div>`;
@@ -1463,12 +1464,47 @@ function onDrop(e) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// JOB SHARING
+// ═══════════════════════════════════════════════════════════════════
+function shareJob(name) {
+  const job = getAllJobs()[name];
+  if (!job) return;
+  const encoded = btoa(encodeURIComponent(JSON.stringify(job)));
+  const url = `${location.origin}${location.pathname}?import=${encoded}`;
+  if (navigator.share) {
+    navigator.share({ title: `My Pipe Girth — ${job.name}`, text: `Gas pipe sizing job: ${job.name}`, url });
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => alert('Share link copied to clipboard!'));
+  } else {
+    prompt('Copy this link to share:', url);
+  }
+}
+
+function checkImport() {
+  const encoded = new URLSearchParams(location.search).get('import');
+  if (!encoded) return;
+  try {
+    const job = JSON.parse(decodeURIComponent(atob(encoded)));
+    if (job && job.name) {
+      history.replaceState({}, '', location.pathname); // clean URL first
+      if (confirm(`Import job "${job.name}" into your Saved Jobs?`)) {
+        const jobs = getAllJobs();
+        jobs[job.name] = job;
+        localStorage.setItem(JOB_STORE, JSON.stringify(jobs));
+        alert(`"${job.name}" added to your Saved Jobs.`);
+      }
+    }
+  } catch(e) { /* invalid import data — ignore */ }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════
 initFromBakedData();  // load built-in tables automatically
 recalcRate();         // compute initial kPa/m
 refreshAll();
-addSection();      // start with one blank takeoff row
+addSection();         // start with one blank takeoff row
+checkImport();        // handle incoming shared job link
 
 function printAll() {
   window.print();

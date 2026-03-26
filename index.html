@@ -519,6 +519,11 @@
               <div class="tile-value" id="qs-v-dp">—</div>
               <div class="tile-unit">kPa (over longest run)</div>
             </div>
+            <div class="tile" id="qs-t-vel">
+              <div class="tile-label">Pipe Velocity</div>
+              <div class="tile-value" id="qs-v-vel">—</div>
+              <div class="tile-unit" id="qs-vel-unit">m/s</div>
+            </div>
           </div>
           <div id="qs-warn" class="warn-box" style="display:none;"></div>
           <div id="qs-oxidiser-warn" class="oxidiser-warn">⚠ O₂ systems: verify pipe velocity does not exceed 25 m/s — ignition risk from particle impact.</div>
@@ -582,6 +587,7 @@
                 <th>Capacity<br>(<span id="toff-cap-unit">MJ/h</span>)</th>
                 <th>Actual<br>kPa/m</th>
                 <th>Actual ΔP<br>(kPa)</th>
+                <th>Velocity<br>(m/s)</th>
                 <th>Status</th>
                 <th></th>
               </tr>
@@ -1276,6 +1282,76 @@ function inverseInterpolate(pairs, mjh) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// PIPE INTERNAL DIAMETER LOOKUP  (mm)
+// Sources: AS/NZS 1432 Type B copper, AS/NZS 4041 SS, AS/NZS 4130 PE SDR11
+// ═══════════════════════════════════════════════════════════════════
+const PIPE_ID_MM = {
+  // Copper — AS/NZS 1432 Type B (OD-designated; wall 0.6–1.5 mm)
+  '6mm Copper Pipe':    4.8,
+  '8mm Copper Pipe':    6.8,
+  '10mm Copper Pipe':   8.8,
+  '15mm Copper Pipe':  13.2,
+  '20mm Copper Pipe':  18.2,
+  '25mm Copper Pipe':  23.2,
+  '32mm Copper Pipe':  29.6,
+  '40mm Copper Pipe':  37.6,
+  '50mm Copper Pipe':  47.6,
+  '65mm Copper Pipe':  62.0,
+  '80mm Copper Pipe':  77.0,
+  '100mm Copper Pipe': 97.0,
+  '125mm Copper Pipe':121.0,
+  '150mm Copper Pipe':146.0,
+  // Stainless steel — OD-designated, typical 1.2–2.0 mm wall for gas service
+  '15mm Steel Pipe':   12.6,
+  '22mm Steel Pipe':   19.6,
+  '28mm Steel Pipe':   25.6,
+  '35mm Steel Pipe':   32.0,
+  '42mm Steel Pipe':   39.0,
+  '54mm Steel Pipe':   51.0,
+  '76.1mm Steel Pipe': 72.1,
+  '80mm Steel Pipe':   76.0,
+  '100mm Steel Pipe':  96.0,
+  // Polyethylene — AS/NZS 4130 SDR 11 (ID = OD × 9/11)
+  '20mm Poly Pipe':    16.4,
+  '25mm Poly Pipe':    20.5,
+  '32mm Poly Pipe':    26.2,
+  '40mm Poly Pipe':    32.7,
+  '50mm Poly Pipe':    40.9,
+  '63mm Poly Pipe':    51.5,
+  '75mm Poly Pipe':    61.4,
+  '90mm Poly Pipe':    73.6,
+  '110mm Poly Pipe':   90.0,
+  '160mm Poly Pipe':  130.9,
+};
+
+// Velocity in m/s from flow (m³/s) and pipe name.
+function calcVelocityMs(pipeName, flowM3s) {
+  const idMm = PIPE_ID_MM[pipeName];
+  if (!idMm || !(flowM3s > 0)) return null;
+  const r = (idMm / 1000) / 2;
+  return flowM3s / (Math.PI * r * r);
+}
+
+// Colour class + badge text based on gas-specific velocity thresholds.
+// O₂: hard FAIL above 25 m/s. All others: informational only.
+function velocityStatus(gasKey, vel) {
+  if (gasKey === 'O2') {
+    if (vel <  20) return { cls: 'pass', label: 'm/s' };
+    if (vel <  25) return { cls: 'warn', label: 'm/s  ⚠' };
+    return             { cls: 'fail', label: 'm/s  ✗ FAIL' };
+  }
+  if (gasKey === 'N2') {
+    if (vel <  20) return { cls: 'pass', label: 'm/s' };
+    if (vel <  30) return { cls: 'warn', label: 'm/s  ⚠' };
+    return             { cls: 'fail', label: 'm/s  ⚠ HIGH' };
+  }
+  // NG, LPG
+  if (vel <  15) return { cls: 'pass', label: 'm/s' };
+  if (vel <  20) return { cls: 'warn', label: 'm/s  ⚠' };
+  return             { cls: 'fail', label: 'm/s  ⚠ HIGH' };
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // PIPE SELECTION
 // ═══════════════════════════════════════════════════════════════════
 function tableKey() {
@@ -1648,6 +1724,25 @@ function runQuick() {
     warnEl.style.display = 'none';
   }
 
+  // Velocity tile
+  const tVel   = el('qs-t-vel');
+  const vVel   = el('qs-v-vel');
+  const uVel   = el('qs-vel-unit');
+  const flowM3s = toM3h(totalDisplay, flowUnit, gasKey) / 3600;
+  const vel     = calcVelocityMs(r.pipe, flowM3s);
+  if (tVel) {
+    if (vel !== null) {
+      const vs = velocityStatus(gasKey, vel);
+      vVel.textContent = vel.toFixed(2);
+      uVel.textContent = vs.label;
+      tVel.className   = `tile ${vs.cls}`;
+    } else {
+      vVel.textContent = '—';
+      uVel.textContent = 'm/s';
+      tVel.className   = 'tile';
+    }
+  }
+
   // Next pipe size
   const nextEl = el('qs-next');
   if (r.next && r.next.cap !== null) {
@@ -1725,7 +1820,7 @@ function renderTakeoff() {
     const addPct      = parseFloat(val('g-add')) || 0;
     const totalDisp   = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
     const totalTblVal = totalDisp > 0 ? toTableUnit(totalDisp, flowUnit, gasKey) : 0;
-    let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', rowClass = '';
+    let pipe = '', cap = '', actualRate = '', actualDp = '', velHtml = '', statusHtml = '', rowClass = '';
 
     if (s.dem > 0 && s.len > 0 && kpaM > 0 && totalTblVal > 0) {
       const r = selectPipe(kpaM, totalTblVal);
@@ -1737,6 +1832,18 @@ function renderTakeoff() {
         const dp      = r.actualRate !== null ? (r.actualRate * s.len) : null;
         actualDp      = dp !== null ? dp.toFixed(4) : '—';
         if (dp !== null) totalDpSum += dp;
+
+        // Velocity
+        const flowM3s = toM3h(totalDisp, flowUnit, gasKey) / 3600;
+        const vel     = calcVelocityMs(r.pipe, flowM3s);
+        if (vel !== null) {
+          const vs = velocityStatus(gasKey, vel);
+          const velColor = vs.cls === 'pass' ? 'var(--green)' : vs.cls === 'warn' ? 'var(--amber)' : 'var(--red)';
+          velHtml = `<span style="color:${velColor};font-weight:700;">${vel.toFixed(2)}</span>`;
+        } else {
+          velHtml = '—';
+        }
+
         if (r.pass) {
           const pct = r.actualRate !== null ? r.actualRate / kpaM : 0;
           if (pct > 0.85) {
@@ -1766,13 +1873,14 @@ function renderTakeoff() {
         <td id="s${s.sid}-cap">${cap}</td>
         <td id="s${s.sid}-rate" style="font-size:.72rem;color:var(--muted);">${actualRate}</td>
         <td id="s${s.sid}-dp" style="font-weight:700;">${actualDp}</td>
+        <td id="s${s.sid}-vel">${velHtml}</td>
         <td id="s${s.sid}-status">${statusHtml}</td>
         <td><button class="btn btn-danger" onclick="removeSection(${s.sid})">✕</button></td>
       </tr>`;
   });
 
   if (sections.length === 0) {
-    html = `<tr><td colspan="13" style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.8rem;">No sections — click "+ Add Row" above.</td></tr>`;
+    html = `<tr><td colspan="14" style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.8rem;">No sections — click "+ Add Row" above.</td></tr>`;
   }
 
   tbody.innerHTML = html;
@@ -1812,7 +1920,7 @@ function updateTakeoffResults() {
     const addPct      = parseFloat(val('g-add')) || 0;
     const totalDisp   = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
     const totalTblVal = totalDisp > 0 ? toTableUnit(totalDisp, flowUnit, gasKey) : 0;
-    let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', bgColor = '';
+    let pipe = '', cap = '', actualRate = '', actualDp = '', velHtml = '', statusHtml = '', bgColor = '';
 
     if (s.dem > 0 && s.len > 0 && kpaM > 0 && totalTblVal > 0) {
       const r = selectPipe(kpaM, totalTblVal);
@@ -1824,6 +1932,17 @@ function updateTakeoffResults() {
         const dp   = r.actualRate !== null ? r.actualRate * s.len : null;
         actualDp   = dp !== null ? dp.toFixed(4) : '—';
         if (dp !== null) totalDpSum += dp;
+
+        const flowM3s = toM3h(totalDisp, flowUnit, gasKey) / 3600;
+        const vel     = calcVelocityMs(r.pipe, flowM3s);
+        if (vel !== null) {
+          const vs = velocityStatus(gasKey, vel);
+          const velColor = vs.cls === 'pass' ? 'var(--green)' : vs.cls === 'warn' ? 'var(--amber)' : 'var(--red)';
+          velHtml = `<span style="color:${velColor};font-weight:700;">${vel.toFixed(2)}</span>`;
+        } else {
+          velHtml = '—';
+        }
+
         if (r.pass) {
           const pct = r.actualRate !== null ? r.actualRate / kpaM : 0;
           statusHtml = pct > 0.85 ? '<span class="badge warn">⚠ PASS</span>' : '<span class="badge pass">✓</span>';
@@ -1844,6 +1963,7 @@ function updateTakeoffResults() {
     set(`s${s.sid}-cap`,   cap);
     set(`s${s.sid}-rate`,  actualRate);
     set(`s${s.sid}-dp`,    actualDp);
+    set(`s${s.sid}-vel`,   velHtml);
     set(`s${s.sid}-status`, statusHtml);
   });
 

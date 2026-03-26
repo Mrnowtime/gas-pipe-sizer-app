@@ -450,6 +450,17 @@
           <span class="hint">= ΔP ÷ Longest Run</span>
         </div>
         <div class="fg">
+          <label for="g-flow-unit">Demand Unit</label>
+          <select id="g-flow-unit" onchange="onFlowUnitChange()">
+            <option value="MJ/h">MJ/h</option>
+            <option value="m³/h">m³/h</option>
+            <option value="L/min">L/min</option>
+            <option value="L/s">L/s</option>
+            <option value="ft³/h">ft³/h</option>
+          </select>
+          <span class="hint">Auto-set by gas type</span>
+        </div>
+        <div class="fg">
           <label for="g-add">Add %</label>
           <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-add" placeholder="e.g. 20" oninput="refreshAll()">
           <span class="hint">Applied to all demands</span>
@@ -472,24 +483,12 @@
       <div class="card-body">
         <div class="fgrid">
           <div class="fg">
-            <label for="qs-dem">Demand</label>
-            <div class="input-with-unit">
-              <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
-              <select id="g-flow-unit" onchange="onFlowUnitChange()">
-                <option value="MJ/h">MJ/h</option>
-                <option value="m³/h">m³/h</option>
-                <option value="L/min">L/min</option>
-                <option value="L/s">L/s</option>
-                <option value="ft³/h">ft³/h</option>
-              </select>
-            </div>
+            <label for="qs-dem">Demand (<span id="qs-dem-unit">MJ/h</span>)</label>
+            <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
           </div>
           <div class="fg">
-            <label for="qs-total">Total Demand</label>
-            <div class="input-with-unit">
-              <input type="text" id="qs-total" class="computed" readonly tabindex="-1" placeholder="—">
-              <span id="qs-total-unit" class="unit-label">MJ/h</span>
-            </div>
+            <label for="qs-total">Total Demand (<span id="qs-total-unit">MJ/h</span>)</label>
+            <input type="text" id="qs-total" class="computed" readonly tabindex="-1" placeholder="—">
           </div>
         </div>
 
@@ -1374,6 +1373,7 @@ function runQuick() {
   // Update unit labels throughout the panel
   const unitLbl = flowUnit;
   const el = id => document.getElementById(id);
+  if (el('qs-dem-unit'))    el('qs-dem-unit').textContent    = unitLbl;
   if (el('qs-total-unit'))  el('qs-total-unit').textContent  = unitLbl;
   if (el('qs-cap-unit'))    el('qs-cap-unit').textContent    = tableUnit;
   if (el('qs-ncap-unit'))   el('qs-ncap-unit').textContent   = tableUnit;

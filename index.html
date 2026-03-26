@@ -262,6 +262,46 @@
       margin-top: .5rem;
     }
 
+    /* ── Gas tab selector ────────────────────── */
+    .gas-tabs { display: flex; gap: .25rem; flex-wrap: wrap; }
+    .gas-tab {
+      padding: .38rem .7rem;
+      border-radius: .35rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      transition: all .15s;
+      white-space: nowrap;
+      line-height: 1.3;
+    }
+    .gas-tab:active { opacity: .75; }
+    .gas-tab.active { background: var(--blue-lt); color: #fff; border-color: var(--blue-lt); }
+    .gas-tab[data-tag="O₂"].active { background: #0891b2; border-color: #0891b2; }
+    .gas-tab[data-tag="N₂"].active { background: #7c3aed; border-color: #7c3aed; }
+
+    /* ── Input with inline unit picker ──────── */
+    .input-with-unit { display: flex; gap: .3rem; align-items: stretch; }
+    .input-with-unit input { flex: 1; min-width: 0; }
+    .input-with-unit select { width: auto; min-width: 68px; font-size: .78rem; padding: .45rem .3rem; flex-shrink: 0; }
+    .input-with-unit .unit-label { font-size: .78rem; color: var(--muted); align-self: center; padding: .45rem .3rem; white-space: nowrap; flex-shrink: 0; }
+
+    /* ── Oxidiser safety banner ──────────────── */
+    .oxidiser-warn {
+      background: #fff7ed;
+      border: 1.5px solid #fed7aa;
+      border-radius: .4rem;
+      padding: .5rem .75rem;
+      font-size: .75rem;
+      color: #c2410c;
+      font-weight: 600;
+      margin-top: .5rem;
+      display: none;
+    }
+    .oxidiser-warn.visible { display: block; }
+
     /* ── Empty state ─────────────────────────── */
     .empty {
       text-align: center;
@@ -329,7 +369,7 @@
 <div class="hdr">
   <div>
     <h1>⚙ Gas Pipe</h1>
-    <p>NZ/AS 5601 · Natural Gas &amp; LPG</p>
+    <p>NZ/AS 5601 · Natural Gas · LPG · O₂ · N₂</p>
   </div>
   <div class="hdr-right" style="display:none;">
     <button class="btn btn-purple" onclick="triggerFileInput()">📂 Override Tables</button>
@@ -375,12 +415,15 @@
     <div class="card-hd"><h2>Global Settings</h2></div>
     <div class="card-body">
       <div class="fgrid">
-        <div class="fg">
-          <label for="g-gas">Gas Type</label>
-          <select id="g-gas" onchange="onGasChange()">
-            <option value="NG">Natural Gas</option>
-            <option value="LPG">LPG</option>
-          </select>
+        <div class="fg" style="grid-column: 1 / -1;">
+          <label>Gas Type</label>
+          <div class="gas-tabs">
+            <button class="gas-tab active" data-gas="NG"  data-tag="fuel" onclick="selectGas('NG')">Natural Gas</button>
+            <button class="gas-tab"        data-gas="LPG" data-tag="fuel" onclick="selectGas('LPG')">LPG</button>
+            <button class="gas-tab"        data-gas="O2"  data-tag="O₂"  onclick="selectGas('O2')">O₂</button>
+            <button class="gas-tab"        data-gas="N2"  data-tag="N₂"  onclick="selectGas('N2')">N₂</button>
+          </div>
+          <input type="hidden" id="g-gas" value="NG">
         </div>
         <div class="fg">
           <label for="g-mat">Pipe Material</label>
@@ -429,12 +472,24 @@
       <div class="card-body">
         <div class="fgrid">
           <div class="fg">
-            <label for="qs-dem">Demand (MJ/h)</label>
-            <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
+            <label for="qs-dem">Demand</label>
+            <div class="input-with-unit">
+              <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="qs-dem" placeholder="e.g. 450" oninput="runQuick()">
+              <select id="g-flow-unit" onchange="onFlowUnitChange()">
+                <option value="MJ/h">MJ/h</option>
+                <option value="m³/h">m³/h</option>
+                <option value="L/min">L/min</option>
+                <option value="L/s">L/s</option>
+                <option value="ft³/h">ft³/h</option>
+              </select>
+            </div>
           </div>
           <div class="fg">
-            <label for="qs-total">Total Demand (MJ/h)</label>
-            <input type="text" id="qs-total" class="computed" readonly tabindex="-1" placeholder="—">
+            <label for="qs-total">Total Demand</label>
+            <div class="input-with-unit">
+              <input type="text" id="qs-total" class="computed" readonly tabindex="-1" placeholder="—">
+              <span id="qs-total-unit" class="unit-label">MJ/h</span>
+            </div>
           </div>
         </div>
 
@@ -452,7 +507,7 @@
             <div class="tile" id="qs-t-cap">
               <div class="tile-label">Capacity @ kPa/m</div>
               <div class="tile-value" id="qs-v-cap">—</div>
-              <div class="tile-unit">MJ/h</div>
+              <div class="tile-unit" id="qs-cap-unit">MJ/h</div>
             </div>
             <div class="tile" id="qs-t-rate">
               <div class="tile-label">Actual kPa/m</div>
@@ -466,6 +521,7 @@
             </div>
           </div>
           <div id="qs-warn" class="warn-box" style="display:none;"></div>
+          <div id="qs-oxidiser-warn" class="oxidiser-warn">⚠ O₂ systems: verify pipe velocity does not exceed 25 m/s — ignition risk from particle impact.</div>
           <div id="qs-next" style="display:none;margin-top:.625rem;">
             <div class="divider"></div>
             <div style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.35rem;">NEXT PIPE SIZE UP</div>
@@ -477,7 +533,7 @@
               <div class="tile">
                 <div class="tile-label">Capacity @ kPa/m</div>
                 <div class="tile-value" id="qs-nv-cap">—</div>
-                <div class="tile-unit">MJ/h</div>
+                <div class="tile-unit" id="qs-ncap-unit">MJ/h</div>
               </div>
             </div>
           </div>
@@ -518,12 +574,12 @@
                 <th>#</th>
                 <th>From</th>
                 <th>To</th>
-                <th>Demand<br>(MJ/h)</th>
+                <th>Demand<br>(<span id="toff-dem-unit">MJ/h</span>)</th>
                 <th>Length<br>(m)</th>
 
-                <th>Total MJ/h<br>(sized for)</th>
+                <th>Total <span id="toff-total-unit">MJ/h</span><br>(sized for)</th>
                 <th>Pipe Size</th>
-                <th>Capacity<br>(MJ/h)</th>
+                <th>Capacity<br>(<span id="toff-cap-unit">MJ/h</span>)</th>
                 <th>Actual<br>kPa/m</th>
                 <th>Actual ΔP<br>(kPa)</th>
                 <th>Status</th>
@@ -553,6 +609,59 @@
 
 <script>
 'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+// GAS CONFIGURATION
+// All gas behaviour is driven from this object — no hardcoded gas logic
+// in UI components.
+// ═══════════════════════════════════════════════════════════════════
+const GAS_CONFIG = {
+  NG:  { name: 'Natural Gas', tag: 'fuel', sg: 0.60,  cv: 38.5, defaultFlowUnit: 'MJ/h',  isOxidiser: false, pipeTableKey: 'NG'  },
+  LPG: { name: 'LPG',         tag: 'fuel', sg: 1.52,  cv: 93.1, defaultFlowUnit: 'MJ/h',  isOxidiser: false, pipeTableKey: 'LPG' },
+  O2:  { name: 'Oxygen',      tag: 'O₂',  sg: 1.105, cv: null,  defaultFlowUnit: 'm³/h',  isOxidiser: true,  pipeTableKey: 'O2'  },
+  N2:  { name: 'Nitrogen',    tag: 'N₂',  sg: 0.967, cv: null,  defaultFlowUnit: 'm³/h',  isOxidiser: false, pipeTableKey: 'N2'  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// FLOW UNIT CONVERSION UTILITY
+// Normalise everything through m³/h.  All ad-hoc conversions must
+// go through these two functions — never inline.
+// ═══════════════════════════════════════════════════════════════════
+function toM3h(value, unit, gasKey) {
+  const cfg = GAS_CONFIG[gasKey];
+  switch (unit) {
+    case 'MJ/h':   return (cfg && cfg.cv) ? value / cfg.cv : NaN;
+    case 'm³/h':   return value;
+    case 'L/min':  return value * 60 / 1000;
+    case 'L/s':    return value * 3.6;
+    case 'ft³/h':  return value * 0.0283168;
+    default:       return value;
+  }
+}
+
+function fromM3h(m3h, unit, gasKey) {
+  const cfg = GAS_CONFIG[gasKey];
+  switch (unit) {
+    case 'MJ/h':   return (cfg && cfg.cv) ? m3h * cfg.cv : NaN;
+    case 'm³/h':   return m3h;
+    case 'L/min':  return m3h * 1000 / 60;
+    case 'L/s':    return m3h / 3.6;
+    case 'ft³/h':  return m3h / 0.0283168;
+    default:       return m3h;
+  }
+}
+
+// The native unit the lookup tables use for this gas.
+function getTableUnit(gasKey) {
+  const cfg = GAS_CONFIG[gasKey];
+  return (cfg && cfg.cv !== null) ? 'MJ/h' : 'm³/h';
+}
+
+// Convert a value in the display unit to the table's native unit.
+function toTableUnit(value, displayUnit, gasKey) {
+  const m3h = toM3h(value, displayUnit, gasKey);
+  return fromM3h(m3h, getTableUnit(gasKey), gasKey);
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // BAKED-IN TABLE DATA  (extracted from NZ/AS 5601 CSV sizing tables)
@@ -792,13 +901,16 @@ let   dataSource  = 'built-in'; // 'built-in' or 'csv'
 const ALL_MATERIALS = ['NZ Copper', 'Aus Copper', 'Stainless Steel', 'Polyethylene'];
 const EXPECTED_KEYS = [
   'NG_NZ Copper','NG_Aus Copper','NG_Stainless Steel','NG_Polyethylene',
-  'LPG_NZ Copper','LPG_Aus Copper','LPG_Stainless Steel','LPG_Polyethylene'
+  'LPG_NZ Copper','LPG_Aus Copper','LPG_Stainless Steel','LPG_Polyethylene',
+  'O2_NZ Copper','O2_Aus Copper','O2_Stainless Steel','O2_Polyethylene',
+  'N2_NZ Copper','N2_Aus Copper','N2_Stainless Steel','N2_Polyethylene',
 ];
 
 // ═══════════════════════════════════════════════════════════════════
 // BAKED-IN DATA INITIALISATION
 // ═══════════════════════════════════════════════════════════════════
 function initFromBakedData() {
+  // Load NG and LPG tables directly.
   for (const [key, entry] of Object.entries(TABLE_DATA)) {
     const { pipes, data } = entry;
     PIPE_ORDER[key] = pipes;
@@ -812,6 +924,38 @@ function initFromBakedData() {
       });
     });
   }
+
+  // Derive O₂ and N₂ tables from NG tables using Spitzglass SG correction.
+  // Q_gas (m³/h) = Q_NG (m³/h) × √(SG_NG / SG_gas)
+  // Q_NG (m³/h) = MJH_NG / CV_NG
+  // Combined factor: MJH_NG → m³/h of gas = (1/CV_NG) × √(SG_NG/SG_gas)
+  const NG_CV = GAS_CONFIG.NG.cv;
+  const NG_SG = GAS_CONFIG.NG.sg;
+  for (const gasKey of ['O2', 'N2']) {
+    const gasCfg = GAS_CONFIG[gasKey];
+    const factor = Math.sqrt(NG_SG / gasCfg.sg) / NG_CV; // MJH_NG → m³/h of this gas
+    for (const mat of ALL_MATERIALS) {
+      const ngKey  = `NG_${mat}`;
+      const gasMatKey = `${gasKey}_${mat}`;
+      const ngEntry = TABLE_DATA[ngKey];
+      if (!ngEntry) continue;
+      const { pipes, data } = ngEntry;
+      PIPE_ORDER[gasMatKey] = pipes;
+      TABLES[gasMatKey] = {};
+      pipes.forEach(name => { TABLES[gasMatKey][name] = []; });
+      data.forEach(row => {
+        const kpaM = row[0];
+        pipes.forEach((name, i) => {
+          const ngMjh = row[i + 1];
+          if (ngMjh > 0) {
+            const m3h = parseFloat((ngMjh * factor).toFixed(3));
+            if (m3h > 0) TABLES[gasMatKey][name].push([kpaM, m3h]);
+          }
+        });
+      });
+    }
+  }
+
   tablesReady = true;
   dataSource = 'built-in';
 }
@@ -824,15 +968,19 @@ function identifyCSV(filename) {
   // Skip helper/calc sheets
   if (/CALC|INPUT|TAKEOFF|ADDITIONAL/.test(u)) return null;
 
-  const gas = u.includes('LPG') ? 'LPG' : 'NG';
+  // Gas detection — check specific gases before generic NG fallback
+  let gas;
+  if      (u.includes('_O2') || u.includes(' O2') || u.includes('-O2')) gas = 'O2';
+  else if (u.includes('_N2') || u.includes(' N2') || u.includes('-N2')) gas = 'N2';
+  else if (u.includes('LPG'))                                            gas = 'LPG';
+  else                                                                   gas = 'NG';
 
   let mat = null;
-  if      (u.includes('NZ COPPER'))       mat = 'NZ Copper';
-  else if (u.includes('AUS COPPER'))      mat = 'Aus Copper';
-  else if (u.includes('STAINLESS STEEL')) mat = 'Stainless Steel';
-  else if (u.includes('POLYETHYLENE'))    mat = 'Polyethylene';
-  // Allow "PE" only if no COPPER in name
-  else if (u.includes(' PE ') && !u.includes('COPPER')) mat = 'Polyethylene';
+  if      (u.includes('NZ COPPER') || u.includes('NZ_COPPER'))       mat = 'NZ Copper';
+  else if (u.includes('AUS COPPER') || u.includes('AUS_COPPER'))     mat = 'Aus Copper';
+  else if (u.includes('STAINLESS STEEL') || u.includes('STAINLESS')) mat = 'Stainless Steel';
+  else if (u.includes('POLYETHYLENE'))                                mat = 'Polyethylene';
+  else if (u.includes(' PE ') && !u.includes('COPPER'))              mat = 'Polyethylene';
 
   return mat ? { gas, mat } : null;
 }
@@ -930,7 +1078,9 @@ function inverseInterpolate(pairs, mjh) {
 // PIPE SELECTION
 // ═══════════════════════════════════════════════════════════════════
 function tableKey() {
-  return `${val('g-gas')}_${val('g-mat')}`;
+  const gasKey = val('g-gas');
+  const tblKey = GAS_CONFIG[gasKey]?.pipeTableKey ?? gasKey;
+  return `${tblKey}_${val('g-mat')}`;
 }
 
 function getPipes() {
@@ -970,6 +1120,78 @@ function selectPipe(kpaM, demandMJH) {
   const last = pipes[pipes.length - 1];
   const cap  = getCapacity(last, kpaM);
   return { pipe: last, cap, actualRate: null, pass: false, pipeIdx: pipes.length - 1, next: null };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAS SELECTOR
+// ═══════════════════════════════════════════════════════════════════
+let prevFlowUnit = 'MJ/h';
+
+function selectGas(gasKey) {
+  const oldGasKey = val('g-gas');
+  const cfg = GAS_CONFIG[gasKey];
+
+  // Capture current demand in m³/h before changing anything
+  const rawDem = parseFloat(val('qs-dem'));
+  let demM3h = null;
+  if (!isNaN(rawDem) && rawDem > 0) {
+    demM3h = toM3h(rawDem, prevFlowUnit, oldGasKey);
+  }
+
+  // Update hidden input + tab styling
+  document.getElementById('g-gas').value = gasKey;
+  document.querySelectorAll('.gas-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.gas === gasKey);
+  });
+
+  // Switch to default flow unit for this gas, disabling MJ/h if no cv
+  applyFlowUnitForGas(gasKey);
+
+  // Re-express demand value in the new default unit
+  if (demM3h !== null && !isNaN(demM3h)) {
+    const newUnit = cfg.defaultFlowUnit;
+    const newVal  = fromM3h(demM3h, newUnit, gasKey);
+    if (!isNaN(newVal)) {
+      document.getElementById('qs-dem').value = parseFloat(newVal.toFixed(4));
+    }
+  }
+
+  prevFlowUnit = cfg.defaultFlowUnit;
+  refreshAll();
+}
+
+function applyFlowUnitForGas(gasKey) {
+  const cfg = GAS_CONFIG[gasKey];
+  const sel = document.getElementById('g-flow-unit');
+  if (!sel) return;
+  Array.from(sel.options).forEach(opt => {
+    const isMJH = opt.value === 'MJ/h';
+    opt.disabled = isMJH && !cfg.cv;
+    opt.style.color = (isMJH && !cfg.cv) ? '#ccc' : '';
+  });
+  // Force away from MJ/h if gas has no cv
+  if (!cfg.cv && sel.value === 'MJ/h') {
+    sel.value = cfg.defaultFlowUnit;
+    prevFlowUnit = cfg.defaultFlowUnit;
+  } else {
+    sel.value = cfg.defaultFlowUnit;
+    prevFlowUnit = cfg.defaultFlowUnit;
+  }
+}
+
+function onFlowUnitChange() {
+  const newUnit  = val('g-flow-unit');
+  const gasKey   = val('g-gas');
+  const rawVal   = parseFloat(val('qs-dem'));
+  if (!isNaN(rawVal) && rawVal > 0) {
+    const m3h    = toM3h(rawVal, prevFlowUnit, gasKey);
+    const newVal = fromM3h(m3h, newUnit, gasKey);
+    if (!isNaN(newVal)) {
+      document.getElementById('qs-dem').value = parseFloat(newVal.toFixed(4));
+    }
+  }
+  prevFlowUnit = newUnit;
+  runQuick();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1013,7 +1235,7 @@ function onRateOverride() {
   refreshAll();
 }
 
-function onGasChange()  { refreshAll(); }
+function onGasChange()  { selectGas(val('g-gas')); }
 function onMatChange()  { refreshAll(); }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1050,12 +1272,13 @@ function saveJob() {
   jobs[name] = {
     name,
     savedAt: new Date().toLocaleString(),
-    gas:    val('g-gas'),
-    mat:    val('g-mat'),
-    dp:     val('g-dp'),
-    len:    val('g-len'),
-    add:    val('g-add'),
-    qsDem:  val('qs-dem'),
+    gas:      val('g-gas'),
+    mat:      val('g-mat'),
+    dp:       val('g-dp'),
+    len:      val('g-len'),
+    add:      val('g-add'),
+    flowUnit: val('g-flow-unit') || GAS_CONFIG[val('g-gas')].defaultFlowUnit,
+    qsDem:    val('qs-dem'),
     sections: sections.map(s => ({ ...s }))
   };
   localStorage.setItem(JOB_STORE, JSON.stringify(jobs));
@@ -1070,10 +1293,19 @@ function loadJob(name) {
   const gasEl = document.getElementById('g-gas');
   const matEl = document.getElementById('g-mat');
   gasEl.value = job.gas; matEl.value = job.mat;
+  // Restore gas tab styling
+  document.querySelectorAll('.gas-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.gas === job.gas);
+  });
   setV('g-dp',    job.dp);
   setV('g-len',   job.len);
   setV('g-add',   job.add);
   setV('qs-dem',  job.qsDem);
+  // Restore flow unit
+  const restoredUnit = job.flowUnit || GAS_CONFIG[job.gas]?.defaultFlowUnit || 'MJ/h';
+  applyFlowUnitForGas(job.gas);
+  document.getElementById('g-flow-unit').value = restoredUnit;
+  prevFlowUnit = restoredUnit;
   sections = (job.sections || []).map(s => ({ ...s }));
   nextSid  = sections.length ? Math.max(...sections.map(s => s.sid)) + 1 : 0;
 
@@ -1109,7 +1341,7 @@ function renderSavedJobs() {
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 0;border-bottom:1px solid var(--border);">
       <div>
         <div style="font-weight:700;font-size:.95rem;">${j.name}</div>
-        <div style="font-size:.72rem;color:var(--muted);">${j.savedAt} &nbsp;·&nbsp; ${j.gas === 'LPG' ? 'LPG' : 'Natural Gas'} &nbsp;·&nbsp; ${j.mat}</div>
+        <div style="font-size:.72rem;color:var(--muted);">${j.savedAt} &nbsp;·&nbsp; ${GAS_CONFIG[j.gas]?.name ?? j.gas} &nbsp;·&nbsp; ${j.mat}</div>
       </div>
       <div style="display:flex;gap:.4rem;">
         <button class="btn btn-green btn-sm" data-k="${esc}" onclick="loadJob(this.dataset.k)">Load</button>
@@ -1126,12 +1358,29 @@ function renderSavedJobs() {
 function runQuick() {
   const qsResult  = document.getElementById('qs-result');
   const qsNoTbl   = document.getElementById('qs-no-tables');
+  const gasKey    = val('g-gas');
+  const cfg       = GAS_CONFIG[gasKey];
+  const flowUnit  = val('g-flow-unit') || cfg.defaultFlowUnit;
+  const tableUnit = getTableUnit(gasKey);
   const kpaM      = currentKpaM();
   const len       = currentLen();
   const demand    = parseFloat(val('qs-dem'));
   const addPct    = parseFloat(val('g-add')) || 0;
-  const totalMJH  = demand > 0 ? demand * (1 + addPct / 100) : demand;
-  setV('qs-total', demand > 0 ? totalMJH.toFixed(1) : '');
+
+  // Display total in the user's chosen unit
+  const totalDisplay = demand > 0 ? demand * (1 + addPct / 100) : demand;
+  setV('qs-total', demand > 0 ? totalDisplay.toFixed(1) : '');
+
+  // Update unit labels throughout the panel
+  const unitLbl = flowUnit;
+  const el = id => document.getElementById(id);
+  if (el('qs-total-unit'))  el('qs-total-unit').textContent  = unitLbl;
+  if (el('qs-cap-unit'))    el('qs-cap-unit').textContent    = tableUnit;
+  if (el('qs-ncap-unit'))   el('qs-ncap-unit').textContent   = tableUnit;
+
+  // Oxidiser warning (reactive)
+  const oxWarn = el('qs-oxidiser-warn');
+  if (oxWarn) oxWarn.classList.toggle('visible', !!cfg.isOxidiser);
 
   if (!tablesReady) {
     qsResult.style.display = 'none';
@@ -1145,7 +1394,11 @@ function runQuick() {
     return;
   }
 
-  const r = selectPipe(kpaM, totalMJH);
+  // Convert demand to table's native unit before lookup
+  const totalTableVal = toTableUnit(totalDisplay, flowUnit, gasKey);
+  if (isNaN(totalTableVal) || totalTableVal <= 0) { qsResult.style.display = 'none'; return; }
+
+  const r = selectPipe(kpaM, totalTableVal);
   if (!r) { qsResult.style.display = 'none'; return; }
 
   qsResult.style.display = '';
@@ -1159,18 +1412,17 @@ function runQuick() {
   setText('qs-v-dp',   actualDp   !== null ? actualDp.toFixed(4)   : '—');
 
   // Status
-  const statusEl = document.getElementById('qs-status');
-  const tSize    = document.getElementById('qs-t-size');
-  const tCap     = document.getElementById('qs-t-cap');
-  const tRate    = document.getElementById('qs-t-rate');
-  const tDp      = document.getElementById('qs-t-dp');
+  const statusEl = el('qs-status');
+  const tSize    = el('qs-t-size');
+  const tCap     = el('qs-t-cap');
+  const tRate    = el('qs-t-rate');
+  const tDp      = el('qs-t-dp');
 
   [tSize, tCap, tRate, tDp].forEach(t => t.className = 'tile');
 
   if (r.pass) {
     statusEl.innerHTML = '<span class="badge pass">✓ PASS</span>';
     tSize.classList.add('pass');
-    // Warn if close to limit (>85%)
     if (actualRate !== null && actualRate > kpaM * 0.85) {
       statusEl.innerHTML = '<span class="badge warn">⚠ PASS (close to limit)</span>';
       tRate.classList.add('warn');
@@ -1182,16 +1434,16 @@ function runQuick() {
   }
 
   // Warn box
-  const warnEl = document.getElementById('qs-warn');
+  const warnEl = el('qs-warn');
   if (!r.pass) {
-    warnEl.textContent = `No ${val('g-mat')} pipe size can carry ${totalMJH.toFixed(1)} MJ/h at the allowable ${kpaM.toFixed(6)} kPa/m rate. Consider a larger allowable ΔP, shorter run, or a different pipe material.`;
+    warnEl.textContent = `No ${val('g-mat')} pipe size can carry ${totalDisplay.toFixed(1)} ${unitLbl} at the allowable ${kpaM.toFixed(6)} kPa/m rate. Consider a larger allowable ΔP, shorter run, or a different pipe material.`;
     warnEl.style.display = '';
   } else {
     warnEl.style.display = 'none';
   }
 
   // Next pipe size
-  const nextEl = document.getElementById('qs-next');
+  const nextEl = el('qs-next');
   if (r.next && r.next.cap !== null) {
     setText('qs-nv-size', r.next.name);
     setText('qs-nv-cap',  r.next.cap.toFixed(1));
@@ -1246,6 +1498,15 @@ function renderTakeoff() {
   noTbl.style.display   = 'none';
   content.style.display = '';
 
+  // Update column header units
+  const gasKey    = val('g-gas');
+  const flowUnit  = val('g-flow-unit') || GAS_CONFIG[gasKey].defaultFlowUnit;
+  const tableUnit = getTableUnit(gasKey);
+  const el = id => document.getElementById(id);
+  if (el('toff-dem-unit'))   el('toff-dem-unit').textContent   = flowUnit;
+  if (el('toff-total-unit')) el('toff-total-unit').textContent = flowUnit;
+  if (el('toff-cap-unit'))   el('toff-cap-unit').textContent   = tableUnit;
+
   readSectionInputs();
 
   const kpaM = currentKpaM();
@@ -1255,12 +1516,13 @@ function renderTakeoff() {
 
   let html = '';
   sections.forEach((s, idx) => {
-    const addPct   = parseFloat(val('g-add')) || 0;
-    const totalMJH = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
+    const addPct      = parseFloat(val('g-add')) || 0;
+    const totalDisp   = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
+    const totalTblVal = totalDisp > 0 ? toTableUnit(totalDisp, flowUnit, gasKey) : 0;
     let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', rowClass = '';
 
-    if (s.dem > 0 && s.len > 0 && kpaM > 0) {
-      const r = selectPipe(kpaM, totalMJH);
+    if (s.dem > 0 && s.len > 0 && kpaM > 0 && totalTblVal > 0) {
+      const r = selectPipe(kpaM, totalTblVal);
       if (r) {
         hasResults    = true;
         pipe          = r.pipe;
@@ -1290,10 +1552,10 @@ function renderTakeoff() {
         <td style="color:var(--muted);font-weight:700;">${idx + 1}</td>
         <td><input type="text" id="s${s.sid}-from" value="${s.from}" style="width:44px" oninput="onToffInput()"></td>
         <td><input type="text" id="s${s.sid}-to"   value="${s.to}"   style="width:44px" oninput="onToffInput()"></td>
-        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-dem" value="${s.dem||''}" placeholder="MJ/h" oninput="onToffInput()"></td>
-        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-len" value="${s.len||''}" placeholder="m"    oninput="onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-dem" value="${s.dem||''}" placeholder="${flowUnit}" oninput="onToffInput()"></td>
+        <td><input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="s${s.sid}-len" value="${s.len||''}" placeholder="m" oninput="onToffInput()"></td>
 
-        <td id="s${s.sid}-total" style="font-weight:700;color:var(--blue);">${totalMJH > 0 ? totalMJH.toFixed(1) : '—'}</td>
+        <td id="s${s.sid}-total" style="font-weight:700;color:var(--blue);">${totalDisp > 0 ? totalDisp.toFixed(1) : '—'}</td>
         <td id="s${s.sid}-pipe" style="font-weight:700;">${pipe}</td>
         <td id="s${s.sid}-cap">${cap}</td>
         <td id="s${s.sid}-rate" style="font-size:.72rem;color:var(--muted);">${actualRate}</td>
@@ -1335,16 +1597,19 @@ function updateTakeoffResults() {
   if (!tablesReady) return;
   readSectionInputs();
 
+  const gasKey    = val('g-gas');
+  const flowUnit  = val('g-flow-unit') || GAS_CONFIG[gasKey].defaultFlowUnit;
   const kpaM = currentKpaM();
   let allPass = true, totalDpSum = 0, hasResults = false;
 
   sections.forEach(s => {
-    const addPct   = parseFloat(val('g-add')) || 0;
-    const totalMJH = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
+    const addPct      = parseFloat(val('g-add')) || 0;
+    const totalDisp   = s.dem > 0 ? s.dem * (1 + addPct / 100) : 0;
+    const totalTblVal = totalDisp > 0 ? toTableUnit(totalDisp, flowUnit, gasKey) : 0;
     let pipe = '', cap = '', actualRate = '', actualDp = '', statusHtml = '', bgColor = '';
 
-    if (s.dem > 0 && s.len > 0 && kpaM > 0) {
-      const r = selectPipe(kpaM, totalMJH);
+    if (s.dem > 0 && s.len > 0 && kpaM > 0 && totalTblVal > 0) {
+      const r = selectPipe(kpaM, totalTblVal);
       if (r) {
         hasResults = true;
         pipe       = r.pipe;
@@ -1368,7 +1633,7 @@ function updateTakeoffResults() {
     const row = document.getElementById(`s${s.sid}-row`);
     if (row) row.style.background = bgColor;
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
-    set(`s${s.sid}-total`, totalMJH > 0 ? totalMJH.toFixed(1) : '—');
+    set(`s${s.sid}-total`, totalDisp > 0 ? totalDisp.toFixed(1) : '—');
     set(`s${s.sid}-pipe`,  pipe);
     set(`s${s.sid}-cap`,   cap);
     set(`s${s.sid}-rate`,  actualRate);
@@ -1512,11 +1777,12 @@ function checkImport() {
 // ═══════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════
-initFromBakedData();  // load built-in tables automatically
-recalcRate();         // compute initial kPa/m
+initFromBakedData();       // load built-in tables (NG/LPG) + derive O₂/N₂
+applyFlowUnitForGas('NG'); // initialise flow unit selector for default gas
+recalcRate();              // compute initial kPa/m
 refreshAll();
-addSection();         // start with one blank takeoff row
-checkImport();        // handle incoming shared job link
+addSection();              // start with one blank takeoff row
+checkImport();             // handle incoming shared job link
 
 function printAll() {
   window.print();

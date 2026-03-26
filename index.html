@@ -448,6 +448,7 @@
           <label for="g-rate">Allowable kPa/m</label>
           <input type="text" inputmode="decimal" autocorrect="off" autocapitalize="none" id="g-rate" class="computed" placeholder="—" oninput="onRateOverride()">
           <span class="hint">= ΔP ÷ Longest Run</span>
+          <span id="g-rate-gas-note" style="display:none;font-size:.65rem;color:#94a3b8;font-style:italic;margin-top:.1rem;">Note: For O₂/N₂ systems, confirm allowable pressure drop with your system design engineer.</span>
         </div>
         <div class="fg">
           <label for="g-flow-unit">Demand Unit</label>
@@ -1343,6 +1344,10 @@ function selectGas(gasKey) {
   document.querySelectorAll('.gas-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.gas === gasKey);
   });
+
+  // Show pressure-drop note only for O₂/N₂
+  const rateNote = document.getElementById('g-rate-gas-note');
+  if (rateNote) rateNote.style.display = (gasKey === 'O2' || gasKey === 'N2') ? '' : 'none';
 
   // Switch to default flow unit for this gas, disabling MJ/h if no cv
   applyFlowUnitForGas(gasKey);
